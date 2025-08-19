@@ -223,8 +223,12 @@
             player.velocityY += gravity;
 
             platforms.forEach(platform => {
-                const platformX = platform.x - scrollOffset;
-                if (player.x + player.width > platformX && player.x < platformX + platform.width && player.y + player.height >= platform.y && player.y + player.height <= platform.y + player.velocityY && player.velocityY >= 0) {
+                // La collisione viene controllata in coordinate del mondo
+                if (player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.y + player.height >= platform.y &&
+                    player.y + player.height <= platform.y + player.velocityY &&
+                    player.velocityY >= 0) {
                     player.y = platform.y - player.height;
                     player.velocityY = 0;
                     player.isJumping = false;
