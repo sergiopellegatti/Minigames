@@ -73,9 +73,11 @@
         };
         const fullscreenButton = { x: GAME_WIDTH - 50, y: 10, width: 40, height: 40 };
         const startButton = { x: GAME_WIDTH / 2 - 100, y: GAME_HEIGHT / 2 + 60, width: 200, height: 50 };
+        const audioToggleButton = { x: GAME_WIDTH - 100, y: 10, width: 40, height: 40 };
         const isFullscreenSupported = typeof document.fullscreenEnabled !== 'undefined' || typeof document.webkitFullscreenEnabled !== 'undefined';
 
         // --- AUDIO ---
+        let isAudioEnabled = false; // L'audio è disattivato di default
         // INSERISCI QUI I LINK DIRETTI AI TUOI FILE AUDIO
         // Se un link non è valido o il file non viene trovato, il gioco continuerà senza quel suono.
         const audioSources = {
@@ -130,6 +132,15 @@
             }
             if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
                 toggleFullscreen();
+                return;
+            }
+            if (isInside(pos, audioToggleButton)) {
+                isAudioEnabled = !isAudioEnabled;
+                if (isAudioEnabled) {
+                    initAudio();
+                } else if (audio.music) {
+                    audio.music.pause();
+                }
             }
         }
 
@@ -140,11 +151,15 @@
             handleTouches(e);
         }, { passive: false });
 
+        displayCanvas.addEventListener('click', function(e) {
+            const pos = { x: e.offsetX / scale, y: e.offsetY / scale };
+            handleTap({ changedTouches: [{ clientX: e.clientX, clientY: e.clientY }] });
+        });
+
         // --- LOGICA DI GIOCO ---
         let audioInitialized = false;
         function initAudio() {
-            if (audioInitialized) return;
-            // La creazione e il caricamento degli elementi audio avvengono solo dopo un'azione dell'utente
+            if (audioInitialized || !isAudioEnabled) return;
             audio.music = new Audio(audioSources.music);
             audio.music.loop = true;
             audio.jump = new Audio(audioSources.jump);
@@ -154,24 +169,22 @@
         }
 
         function playSound(sound) {
-            if (audioInitialized && audio[sound]) {
-                audio[sound].currentTime = 0;
-                audio[sound].play().catch(err => {
-                    if (window.console && console.log) {
-                        console.log(`Impossibile riprodurre il suono '${sound}':`, err);
-                    }
-                });
-            }
+            if (!isAudioEnabled || !audioInitialized || !audio[sound]) return;
+            audio[sound].currentTime = 0;
+            audio[sound].play().catch(err => {
+                if (window.console && console.log) {
+                    console.log(`Impossibile riprodurre il suono '${sound}':`, err);
+                }
+            });
         }
 
         function playMusic() {
-            if (audioInitialized && audio.music) {
-                audio.music.play().catch(err => {
-                    if (window.console && console.log) {
-                        console.log("Impossibile riprodurre la musica:", err);
-                    }
-                });
-            }
+            if (!isAudioEnabled || !audioInitialized || !audio.music) return;
+            audio.music.play().catch(err => {
+                if (window.console && console.log) {
+                    console.log("Impossibile riprodurre la musica:", err);
+                }
+            });
         }
 
         function toggleFullscreen() {
@@ -239,7 +252,7 @@
         }
 
         function resetLevel() {
-            initAudio(); // Inizializza e avvia l'audio alla prima interazione
+            // L'audio viene inizializzato solo dall'azione dell'utente sul pulsante apposito
             player.x = 100; player.y = 250; player.velocityY = 0; player.isJumping = true;
             scrollOffset = 0; score = 0; quantumLeapReady = false;
             setupQuanta();
@@ -334,6 +347,26 @@
             }
         }
 
+        function drawAudioButton() {
+            const btn = audioToggleButton;
+            ctx.strokeStyle = '#4a4a4a';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
+
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#4a4a4a';
+
+            if (isAudioEnabled) {
+                // Icona altoparlante
+                ctx.fillText('🔊', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2);
+            } else {
+                // Icona altoparlante muto
+                ctx.fillText('🔇', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2);
+            }
+        }
+
         function drawFullscreenButton() {
             if (!isFullscreenSupported) return;
             ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 3;
@@ -414,13 +447,13 @@
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             if (gameState === 'playing') {
                 drawBackground(); // Disegna il nuovo sfondo
-                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
+                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
             } else if (gameState === 'start') {
                 drawStartScreen();
             } else if (gameState === 'complete') {
                 // Ridisegna l'ultima schermata di gioco e sovrappone la schermata di completamento
                 ctx.fillStyle = '#d0e7f9'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
+                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
                 drawCompleteScreen();
             }
 
