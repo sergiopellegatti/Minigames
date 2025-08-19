@@ -51,7 +51,7 @@
         let scrollOffset = 0;
         let score = 0;
         let quantumLeapReady = false;
-        let gameState = 'start';
+        let gameState = 'playing'; // Modificato per avviare subito il gioco
 
         const player = { x: 100, y: 250, width: 40, height: 40, color: 'deepskyblue', speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
 
@@ -249,17 +249,6 @@
             ctx.globalAlpha = 1.0;
         }
 
-        function drawStartScreen() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            ctx.fillStyle = 'white'; ctx.textAlign = 'center';
-            ctx.font = '40px "Comic Sans MS"'; ctx.fillText('Quantum Leap!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100);
-            ctx.font = '22px "Comic Sans MS"'; ctx.fillText("Lezione 1: L'Energia è Quantizzata!", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
-            ctx.font = '18px "Comic Sans MS"'; ctx.fillText("Aiuta Quarky a raccogliere i pacchetti di energia (i quanti).", GAME_WIDTH / 2, GAME_HEIGHT / 2);
-            ctx.fillText("Raccoglili tutti per fare un Salto Quantico!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30);
-            ctx.font = '24px "Comic Sans MS"'; ctx.fillText("Tocca un pulsante o premi un tasto per iniziare", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
-        }
-
         function drawCompleteScreen() {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
@@ -277,9 +266,9 @@
         function gameLoop() {
             if (gameState === 'playing') {
                 update();
-            } else if (gameState === 'start' || gameState === 'complete') {
+            } else if (gameState === 'complete') {
                 if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
-                    if (gameState === 'complete') setTimeout(resetLevel, 200); else resetLevel();
+                    setTimeout(resetLevel, 200);
                 }
             }
 
@@ -288,8 +277,6 @@
             if (gameState === 'playing') {
                 ctx.fillStyle = '#d0e7f9'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
                 drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
-            } else if (gameState === 'start') {
-                drawStartScreen();
             } else if (gameState === 'complete') {
                 drawCompleteScreen();
             }
@@ -319,7 +306,7 @@
 
         // --- AVVIO ---
         window.addEventListener('resize', resize, false);
-        setupQuanta();
+        resetLevel(); // Inizializza e avvia il gioco
         resize();
         gameLoop();
     </script>
