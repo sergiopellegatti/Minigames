@@ -201,6 +201,7 @@
             else player.velocityX = 0;
             player.x += player.velocityX;
 
+            /* --- SEZIONE DI SCORRIMENTO TEMPORANEAMENTE DISATTIVATA PER DEBUG ---
             if (player.x > GAME_WIDTH / 2 && scrollOffset < (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width - GAME_WIDTH)) {
                 scrollOffset += player.speed;
                 player.x -= player.speed;
@@ -208,6 +209,15 @@
             if (player.x < 100 && scrollOffset > 0) {
                 scrollOffset -= player.speed;
                 player.x += player.speed;
+            }
+            */
+
+            // Limiti del mondo statico (per debug)
+            if (player.x < 0) {
+                player.x = 0;
+            }
+            if (player.x + player.width > GAME_WIDTH) {
+                player.x = GAME_WIDTH - player.width;
             }
 
             player.y += player.velocityY;
