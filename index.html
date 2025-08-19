@@ -6,34 +6,41 @@
     <title>Quantum Leap</title>
     <style>
         body {
-            text-align: center;
-            background-color: #f0f8ff; /* Un celeste chiaro come il cielo */
+            background-color: #f0f8ff;
             font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
             color: #333;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Nasconde le barre di scorrimento */
+            overflow: hidden;
+            /* Layout Flexbox per centrare tutto */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
         }
 
         h1 {
-            color: #ff4500; /* Arancione-rosso, energetico! */
+            color: #ff4500;
             margin: 10px 0;
+            flex-shrink: 0; /* Impedisce al titolo di restringersi */
         }
 
         p {
             margin: 5px 0;
+            flex-shrink: 0; /* Impedisce al paragrafo di restringersi */
         }
 
         canvas {
             border: 3px solid #000;
             background-color: #fff;
             display: block;
-            /* Stili per la responsività */
-            width: 100%;
-            max-width: 800px; /* Non superare la risoluzione nativa */
+            /* Stili di responsività migliorati */
+            max-width: 95vw;
+            max-height: 95vh;
             aspect-ratio: 800 / 400;
             object-fit: contain;
-            margin: 10px auto;
         }
     </style>
 </head>
@@ -143,11 +150,48 @@
 
         // Aggiunge gli ascoltatori di eventi per il touch
         canvas.addEventListener('touchstart', handleTouches, false);
-        canvas.addEventListener('touchend', handleTouches, false);
         canvas.addEventListener('touchmove', handleTouches, false);
+
+        canvas.addEventListener('touchend', function(e) {
+            // Prima controlla se è stato toccato un pulsante dell'UI come quello per lo schermo intero
+            const pos = getTouchPos(canvas, e);
+            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
+                toggleFullscreen();
+            }
+            // Poi, esegue la normale logica di gestione dei controlli di gioco
+            handleTouches(e);
+        }, false);
+
+        // Aggiunge l'ascoltatore per il pulsante fullscreen
+        canvas.addEventListener('click', function(e) {
+            const pos = getTouchPos(canvas, e);
+            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
+                toggleFullscreen();
+            }
+        });
 
 
         // --- FUNZIONI DI DISEGNO ---
+        const fullscreenButton = { x: canvas.width - 50, y: 10, width: 40, height: 40 };
+        const isFullscreenSupported = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen();
+                } else if (el.webkitRequestFullscreen) { /* Safari */
+                    el.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
         function drawPlayer() {
             ctx.fillStyle = player.color;
             if (quantumLeapReady) {
@@ -190,18 +234,56 @@
             }
         }
 
+        function drawFullscreenButton() {
+            if (!isFullscreenSupported) return;
+
+            ctx.strokeStyle = '#4a4a4a';
+            ctx.lineWidth = 3;
+
+            const x = fullscreenButton.x;
+            const y = fullscreenButton.y;
+            const w = fullscreenButton.width;
+            const h = fullscreenButton.height;
+            const L = 10; // Lunghezza della linea
+
+            ctx.beginPath();
+            // Alto-sinistra
+            ctx.moveTo(x, y + L);
+            ctx.lineTo(x, y);
+            ctx.lineTo(x + L, y);
+            // Alto-destra
+            ctx.moveTo(x + w - L, y);
+            ctx.lineTo(x + w, y);
+            ctx.lineTo(x + w, y + L);
+            // Basso-sinistra
+            ctx.moveTo(x, y + h - L);
+            ctx.lineTo(x, y + h);
+            ctx.lineTo(x + L, y + h);
+            // Basso-destra
+            ctx.moveTo(x + w - L, y + h);
+            ctx.lineTo(x + w, y + h);
+            ctx.lineTo(x + w, y + h - L);
+            ctx.stroke();
+        }
+
         function drawControls() {
-            ctx.globalAlpha = 0.5; // Imposta la trasparenza per i pulsanti
-            ctx.fillStyle = '#4a4a4a';
+            ctx.globalAlpha = 0.5;
 
             for (const key in touchControls) {
                 const button = touchControls[key];
+                // Se il tasto corrispondente è premuto, cambia colore per dare feedback
+                if (keys[button.key]) {
+                    ctx.fillStyle = '#6c6c6c'; // Grigio più scuro
+                } else {
+                    ctx.fillStyle = '#4a4a4a'; // Grigio standard
+                }
+
                 ctx.beginPath();
-                // Disegna un cerchio per un look più da "gamepad"
-                ctx.arc(button.x + button.width / 2, button.y + button.height / 2, button.width / 2, 0, Math.PI * 2);
+                // Usa rect per la massima compatibilità, disegnando un quadrato
+                ctx.rect(button.x, button.y, button.width, button.height);
                 ctx.fill();
 
-                // Aggiunge un'icona/testo semplice
+                // Aggiunge l'icona
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 30px sans-serif';
                 ctx.textAlign = 'center';
@@ -337,6 +419,7 @@
                     drawPlayer();
                     drawUI();
                     drawControls();
+            drawFullscreenButton();
                     update();
                     break;
                 case 'complete':
