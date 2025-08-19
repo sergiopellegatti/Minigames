@@ -24,6 +24,13 @@ const player = {
     velocityX: 0, velocityY: 0, isJumping: true
 };
 
+// Definizione dei pulsanti per i controlli touch
+const touchControls = {
+    left: { x: 50, y: canvas.height - 90, width: 70, height: 70, key: 'ArrowLeft' },
+    right: { x: 140, y: canvas.height - 90, width: 70, height: 70, key: 'ArrowRight' },
+    jump: { x: canvas.width - 120, y: canvas.height - 90, width: 70, height: 70, key: 'Space' }
+};
+
 const platforms = [
     { x: 0, y: canvas.height - 40, width: 400, height: 40 },
     { x: 500, y: canvas.height - 100, width: 200, height: 20 },
@@ -52,6 +59,47 @@ function setupQuanta() {
 // --- CONTROLLI ---
 window.addEventListener('keydown', (e) => { keys[e.code] = true; });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+// Funzioni di supporto per il Touch
+function getTouchPos(canvasDom, touchEvent) {
+    const rect = canvasDom.getBoundingClientRect();
+    // Gestisce sia eventi touch singoli che multipli
+    const touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
+    return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+    };
+}
+
+function isInside(pos, button) {
+    return pos.x > button.x && pos.x < button.x + button.width &&
+           pos.y < button.y + button.height && pos.y > button.y;
+}
+
+// Logica unificata per la gestione del touch
+function handleTouches(e) {
+    e.preventDefault(); // Previene comportamenti di default come lo scroll
+    // Resetta prima tutti i tasti controllati dal touch
+    for (const key in touchControls) {
+        keys[touchControls[key].key] = false;
+    }
+    // Ora attiva i tasti che sono attualmente toccati
+    for (let i = 0; i < e.touches.length; i++) {
+        const touchPos = getTouchPos(canvas, e.touches[i]);
+        for (const key in touchControls) {
+            const button = touchControls[key];
+            if (isInside(touchPos, button)) {
+                keys[button.key] = true;
+            }
+        }
+    }
+}
+
+// Aggiunge gli ascoltatori di eventi per il touch
+canvas.addEventListener('touchstart', handleTouches, false);
+canvas.addEventListener('touchend', handleTouches, false);
+canvas.addEventListener('touchmove', handleTouches, false);
+
 
 // --- FUNZIONI DI DISEGNO ---
 function drawPlayer() {
@@ -94,6 +142,31 @@ function drawUI() {
         ctx.textAlign = 'center';
         ctx.fillText('SALTO QUANTICO PRONTO!', canvas.width / 2, 30);
     }
+}
+
+function drawControls() {
+    ctx.globalAlpha = 0.5; // Imposta la trasparenza per i pulsanti
+    ctx.fillStyle = '#4a4a4a';
+
+    for (const key in touchControls) {
+        const button = touchControls[key];
+        ctx.beginPath();
+        // Disegna un cerchio per un look più da "gamepad"
+        ctx.arc(button.x + button.width / 2, button.y + button.height / 2, button.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Aggiunge un'icona/testo semplice
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        let text = '';
+        if (key === 'left') text = '◀';
+        else if (key === 'right') text = '▶';
+        else if (key === 'jump') text = '▲';
+        ctx.fillText(text, button.x + button.width / 2, button.y + button.height / 2 + 2);
+    }
+    ctx.globalAlpha = 1.0; // Resetta la trasparenza per gli altri elementi
 }
 
 function drawStartScreen() {
@@ -216,6 +289,7 @@ function gameLoop() {
             drawQuanta();
             drawPlayer();
             drawUI();
+            drawControls();
             update();
             break;
         case 'complete':
