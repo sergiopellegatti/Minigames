@@ -236,10 +236,13 @@
                 }
             });
 
+            // Collisioni con i quanti (in coordinate del mondo)
             quanta.forEach(q => {
                 if (q.active) {
-                    const quantumX = q.x - scrollOffset;
-                    if (player.x < quantumX + q.width && player.x + player.width > quantumX && player.y < q.y + q.height && player.y + player.height > q.y) {
+                    if (player.x < q.x + q.width &&
+                        player.x + player.width > q.x &&
+                        player.y < q.y + q.height &&
+                        player.y + player.height > q.y) {
                         q.active = false;
                         score++;
                         playSound('collect');
