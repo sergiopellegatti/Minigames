@@ -196,30 +196,29 @@
         }
 
         function update() {
-            if (keys['ArrowLeft'] || keys['KeyA']) player.velocityX = -player.speed;
-            else if (keys['ArrowRight'] || keys['KeyD']) player.velocityX = player.speed;
-            else player.velocityX = 0;
+            // Movimento del giocatore nel mondo
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.velocityX = -player.speed;
+            } else if (keys['ArrowRight'] || keys['KeyD']) {
+                player.velocityX = player.speed;
+            } else {
+                player.velocityX = 0;
+            }
             player.x += player.velocityX;
 
-            /* --- SEZIONE DI SCORRIMENTO TEMPORANEAMENTE DISATTIVATA PER DEBUG ---
-            if (player.x > GAME_WIDTH / 2 && scrollOffset < (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width - GAME_WIDTH)) {
-                scrollOffset += player.speed;
-                player.x -= player.speed;
-            }
-            if (player.x < 100 && scrollOffset > 0) {
-                scrollOffset -= player.speed;
-                player.x += player.speed;
-            }
-            */
+            // La camera segue il giocatore
+            scrollOffset = player.x - GAME_WIDTH / 2;
 
-            // Limiti del mondo statico (per debug)
-            if (player.x < 0) {
-                player.x = 0;
+            // Limita la camera ai bordi del mondo
+            if (scrollOffset < 0) {
+                scrollOffset = 0;
             }
-            if (player.x + player.width > GAME_WIDTH) {
-                player.x = GAME_WIDTH - player.width;
+            const worldWidth = platforms[platforms.length - 1].x + platforms[platforms.length - 1].width;
+            if (scrollOffset > worldWidth - GAME_WIDTH) {
+                scrollOffset = worldWidth - GAME_WIDTH;
             }
 
+            // Movimento verticale e gravità
             player.y += player.velocityY;
             player.velocityY += gravity;
 
@@ -302,7 +301,8 @@
         function drawPlayer() {
             const p = player;
             ctx.save();
-            ctx.translate(p.x, p.y);
+            // Trasla alla posizione corretta sullo schermo (mondo - camera)
+            ctx.translate(p.x - scrollOffset, p.y);
 
             // Bagliore luminoso
             ctx.shadowColor = quantumLeapReady ? 'gold' : '#33ff33';
