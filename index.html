@@ -5,34 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Quantum Leap</title>
     <style>
-        body {
-            background-color: #000;
-            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        canvas {
-            display: block;
-            image-rendering: -webkit-optimize-contrast; /* Per pixel art più nitida */
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
-        }
+        body { background-color: #000; font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif; color: #fff; margin: 0; padding: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; image-rendering: pixelated; }
     </style>
 </head>
 <body>
     <canvas id="displayCanvas"></canvas>
-
     <script>
-        // --- IMPOSTAZIONE ---
         const displayCanvas = document.getElementById('displayCanvas');
         const displayCtx = displayCanvas.getContext('2d');
-
         const gameCanvas = document.createElement('canvas');
         const GAME_WIDTH = 800;
         const GAME_HEIGHT = 450;
@@ -40,469 +21,118 @@
         gameCanvas.height = GAME_HEIGHT;
         const ctx = gameCanvas.getContext('2d');
 
-        // --- VARIABILI DI GIOCO ---
         const gravity = 0.6;
         const jumpStrength = -15;
         const quantumJumpStrength = -28;
-        const QUANTA_GOAL = 10;
+        let QUANTA_GOAL = 14;
+        let keys = {}, scale = 1, scrollOffset = 0, score = 0, quantumLeapReady = false, gameState = 'start';
 
-        let keys = {};
-        let scale = 1;
-        let scrollOffset = 0;
-        let score = 0;
-        let quantumLeapReady = false;
-        let gameState = 'start'; // Ripristinato lo stato iniziale
-
-        const player = { x: 100, y: 250, width: 40, height: 40, color: 'deepskyblue', speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
-
-        const platforms = [
-            { x: 0, y: GAME_HEIGHT - 40, width: 400, height: 40 },
-            { x: 500, y: GAME_HEIGHT - 100, width: 200, height: 20 },
-            { x: 800, y: GAME_HEIGHT - 180, width: 200, height: 20 },
-            { x: 1150, y: GAME_HEIGHT - 250, width: 150, height: 20 },
-            { x: 1500, y: GAME_HEIGHT - 150, width: 300, height: 20 },
-            { x: 1900, y: GAME_HEIGHT - 250, width: 150, height: 20 },
-            { x: 2200, y: GAME_HEIGHT - 400, width: 100, height: 20, goal: true }
-        ];
-
+        const player = { x: 0, y: 0, width: 40, height: 40, speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
+        const platforms = [];
         const quanta = [];
+        const electrons = [];
+        let electronTimer = 0;
+        let electronInterval = 120;
+
         const touchControls = {
             left: { x: 50, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowLeft' },
             right: { x: 140, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowRight' },
             jump: { x: GAME_WIDTH - 120, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'Space' }
         };
         const fullscreenButton = { x: GAME_WIDTH - 50, y: 10, width: 40, height: 40 };
-        const startButton = { x: GAME_WIDTH / 2 - 100, y: GAME_HEIGHT / 2 + 60, width: 200, height: 50 };
+        const startButton = { x: GAME_WIDTH / 2 - 100, y: GAME_HEIGHT / 2 + 80, width: 200, height: 50 };
         const audioToggleButton = { x: GAME_WIDTH - 100, y: 10, width: 40, height: 40 };
         const isFullscreenSupported = typeof document.fullscreenEnabled !== 'undefined' || typeof document.webkitFullscreenEnabled !== 'undefined';
 
-        // --- AUDIO ---
-        let isAudioEnabled = false; // L'audio è disattivato di default
-        // INSERISCI QUI I LINK DIRETTI AI TUOI FILE AUDIO
-        // Se un link non è valido o il file non viene trovato, il gioco continuerà senza quel suono.
-        const audioSources = {
-            music: "MUSICA_DI_SOTTOFONDO.mp3",
-            jump: "SUONO_SALTO.wav",
-            collect: "SUONO_RACCOLTA.wav"
-        };
-        const audio = {}; // Verrà popolato dopo l'interazione dell'utente
+        let isAudioEnabled = false, audio = {}, audioInitialized = false;
+        const audioSources = { music: "", jump: "", collect: "" };
 
-        // --- CONTROLLI ---
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            // Permette di iniziare con un tasto anche dalla schermata di avvio
-            if (gameState === 'start' || gameState === 'complete') {
-                if (e.code === 'Enter' || e.code === 'Space') resetLevel();
-            }
-        });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-
-        function getTouchPos(touch) {
-            const rect = displayCanvas.getBoundingClientRect();
-            return { x: (touch.clientX - rect.left) / scale, y: (touch.clientY - rect.top) / scale };
-        }
-
-        function isInside(pos, button) {
-            return pos.x > button.x && pos.x < button.x + button.width && pos.y < button.y + button.height && pos.y > button.y;
-        }
-
-        function handleTouches(e) {
-            e.preventDefault();
-            Object.keys(touchControls).forEach(k => keys[touchControls[k].key] = false);
-            for (let i = 0; i < e.touches.length; i++) {
-                const pos = getTouchPos(e.touches[i]);
-                for (const key in touchControls) {
-                    if (isInside(pos, touchControls[key])) keys[touchControls[key].key] = true;
-                }
-            }
-        }
-
+        window.addEventListener('keydown', e => { keys[e.code] = true; if ((gameState === 'start' || gameState === 'complete') && (e.code === 'Enter' || e.code === 'Space')) resetLevel(); });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+        function getTouchPos(touch) { const rect = displayCanvas.getBoundingClientRect(); return { x: (touch.clientX - rect.left) / scale, y: (touch.clientY - rect.top) / scale }; }
+        function isInside(pos, button) { return pos.x > button.x && pos.x < button.x + button.width && pos.y < button.y + button.height && pos.y > button.y; }
+        function handleTouches(e) { e.preventDefault(); Object.keys(touchControls).forEach(k => keys[touchControls[k].key] = false); for (let i = 0; i < e.touches.length; i++) { const pos = getTouchPos(e.touches[i]); for (const key in touchControls) { if (isInside(pos, touchControls[key])) keys[touchControls[key].key] = true; } } }
         function handleTap(e) {
-            const touch = e.changedTouches[0];
-            if (!touch) return;
-            const pos = getTouchPos(touch);
-
-            if (gameState === 'start' && isInside(pos, startButton)) {
-                resetLevel();
-                return;
-            }
-            if (gameState === 'complete' && isInside(pos, startButton)) { // Riutilizziamo il 'pulsante' di start
-                resetLevel();
-                return;
-            }
-            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
-                toggleFullscreen();
-                return;
-            }
-            if (isInside(pos, audioToggleButton)) {
-                isAudioEnabled = !isAudioEnabled;
-                if (isAudioEnabled) {
-                    initAudio();
-                } else if (audio.music) {
-                    audio.music.pause();
-                }
-            }
+            const touch = e.changedTouches[0]; if (!touch) return; const pos = getTouchPos(touch);
+            if ((gameState === 'start' || gameState === 'complete') && isInside(pos, startButton)) { resetLevel(); return; }
+            if (isFullscreenSupported && isInside(pos, fullscreenButton)) { toggleFullscreen(); return; }
+            if (isInside(pos, audioToggleButton)) { isAudioEnabled = !isAudioEnabled; if (isAudioEnabled) initAudio(); else if (audio.music) audio.music.pause(); }
         }
-
         displayCanvas.addEventListener('touchstart', handleTouches, { passive: false });
         displayCanvas.addEventListener('touchmove', handleTouches, { passive: false });
-        displayCanvas.addEventListener('touchend', function(e) {
-            handleTap(e);
-            handleTouches(e);
-        }, { passive: false });
+        displayCanvas.addEventListener('touchend', e => { handleTap(e); handleTouches(e); }, { passive: false });
+        displayCanvas.addEventListener('click', e => handleTap({ changedTouches: [{ clientX: e.clientX, clientY: e.clientY }] }));
 
-        displayCanvas.addEventListener('click', function(e) {
-            const pos = { x: e.offsetX / scale, y: e.offsetY / scale };
-            handleTap({ changedTouches: [{ clientX: e.clientX, clientY: e.clientY }] });
-        });
-
-        // --- LOGICA DI GIOCO ---
-        let audioInitialized = false;
-        function initAudio() {
-            if (audioInitialized || !isAudioEnabled) return;
-            audio.music = new Audio(audioSources.music);
-            audio.music.loop = true;
-            audio.jump = new Audio(audioSources.jump);
-            audio.collect = new Audio(audioSources.collect);
-            audioInitialized = true;
-            playMusic();
-        }
-
-        function playSound(sound) {
-            if (!isAudioEnabled || !audioInitialized || !audio[sound]) return;
-            audio[sound].currentTime = 0;
-            audio[sound].play().catch(err => {
-                if (window.console && console.log) {
-                    console.log(`Impossibile riprodurre il suono '${sound}':`, err);
-                }
-            });
-        }
-
-        function playMusic() {
-            if (!isAudioEnabled || !audioInitialized || !audio.music) return;
-            audio.music.play().catch(err => {
-                if (window.console && console.log) {
-                    console.log("Impossibile riprodurre la musica:", err);
-                }
-            });
-        }
-
-        function toggleFullscreen() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                document.documentElement.requestFullscreen?.().catch(err => console.log(err));
-            } else {
-                document.exitFullscreen?.();
-            }
-        }
+        function initAudio() { if (audioInitialized || !isAudioEnabled) return; audio.music = new Audio(audioSources.music); audio.music.loop = true; audio.jump = new Audio(audioSources.jump); audio.collect = new Audio(audioSources.collect); audioInitialized = true; playMusic(); }
+        function playSound(sound) { if (!isAudioEnabled || !audioInitialized || !audio[sound]) return; audio[sound].currentTime = 0; audio[sound].play().catch(err => { if (window.console && console.log) console.log(`Audio error:`, err); }); }
+        function playMusic() { if (!isAudioEnabled || !audioInitialized || !audio.music) return; audio.music.play().catch(err => { if (window.console && console.log) console.log(`Audio error:`, err); }); }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(err => console.log(err)); else document.exitFullscreen?.(); }
 
         function update() {
-            // Movimento del giocatore nel mondo
-            if (keys['ArrowLeft'] || keys['KeyA']) {
-                player.velocityX = -player.speed;
-            } else if (keys['ArrowRight'] || keys['KeyD']) {
-                player.velocityX = player.speed;
-            } else {
-                player.velocityX = 0;
-            }
+            if (keys['ArrowLeft'] || keys['KeyA']) player.velocityX = -player.speed; else if (keys['ArrowRight'] || keys['KeyD']) player.velocityX = player.speed; else player.velocityX = 0;
             player.x += player.velocityX;
-
-            // La camera segue il giocatore
+            const worldWidth = platforms.length > 0 ? platforms[platforms.length - 1].x + platforms[platforms.length - 1].width : GAME_WIDTH;
             scrollOffset = player.x - GAME_WIDTH / 2;
-
-            // Limita la camera ai bordi del mondo
-            if (scrollOffset < 0) {
-                scrollOffset = 0;
-            }
-            const worldWidth = platforms[platforms.length - 1].x + platforms[platforms.length - 1].width;
-            if (scrollOffset > worldWidth - GAME_WIDTH) {
-                scrollOffset = worldWidth - GAME_WIDTH;
-            }
-
-            // Movimento verticale e gravità
-            player.y += player.velocityY;
-            player.velocityY += gravity;
-
-            platforms.forEach(platform => {
-                // La collisione viene controllata in coordinate del mondo
-                if (player.x + player.width > platform.x &&
-                    player.x < platform.x + platform.width &&
-                    player.y + player.height >= platform.y &&
-                    player.y + player.height <= platform.y + player.velocityY &&
-                    player.velocityY >= 0) {
-                    player.y = platform.y - player.height;
-                    player.velocityY = 0;
-                    player.isJumping = false;
-                    if (platform.goal) gameState = 'complete';
-                }
-            });
-
-            // Collisioni con i quanti (in coordinate del mondo)
-            quanta.forEach(q => {
-                if (q.active) {
-                    if (player.x < q.x + q.width &&
-                        player.x + player.width > q.x &&
-                        player.y < q.y + q.height &&
-                        player.y + player.height > q.y) {
-                        q.active = false;
-                        score++;
-                        playSound('collect');
-                        if (score >= QUANTA_GOAL) quantumLeapReady = true;
-                    }
-                }
-            });
-
-            if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
-                player.isJumping = true;
-                playSound('jump');
-                player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength;
-                if (quantumLeapReady) quantumLeapReady = false;
-            }
-
+            if (scrollOffset < 0) scrollOffset = 0; if (scrollOffset > worldWidth - GAME_WIDTH) scrollOffset = worldWidth - GAME_WIDTH;
+            player.y += player.velocityY; player.velocityY += gravity;
+            platforms.forEach(p => { if (player.x + player.width > p.x && player.x < p.x + p.width && player.y + player.height >= p.y && player.y + player.height <= p.y + player.velocityY && player.velocityY >= 0) { player.y = p.y - player.height; player.velocityY = 0; player.isJumping = false; if (p.goal) gameState = 'complete'; } });
+            quanta.forEach(q => { if (q.active && player.x < q.x + q.width && player.x + player.width > q.x && player.y < q.y + q.height && player.y + player.height > q.y) { q.active = false; score++; playSound('collect'); if (score >= QUANTA_GOAL) quantumLeapReady = true; } });
+            updateElectrons();
+            if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) { player.isJumping = true; playSound('jump'); player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength; if (quantumLeapReady) quantumLeapReady = false; }
             if (player.y > GAME_HEIGHT) resetLevel();
         }
 
-        function setupQuanta() {
-            quanta.length = 0;
-            const quantaPositions = [ { x: 350, y: GAME_HEIGHT - 80 }, { x: 550, y: GAME_HEIGHT - 140 }, { x: 650, y: GAME_HEIGHT - 140 }, { x: 850, y: GAME_HEIGHT - 220 }, { x: 950, y: GAME_HEIGHT - 220 }, { x: 1200, y: GAME_HEIGHT - 300 }, { x: 1550, y: GAME_HEIGHT - 190 }, { x: 1650, y: GAME_HEIGHT - 190 }, { x: 1950, y: GAME_HEIGHT - 290 }, { x: 2000, y: GAME_HEIGHT - 290 } ];
-            quantaPositions.forEach(pos => quanta.push({ x: pos.x, y: pos.y, width: 15, height: 15, active: true }));
-        }
-
-        function resetLevel() {
-            // L'audio viene inizializzato solo dall'azione dell'utente sul pulsante apposito
-            player.x = 100; player.y = 250; player.velocityY = 0; player.isJumping = true;
-            scrollOffset = 0; score = 0; quantumLeapReady = false;
-            setupQuanta();
-            gameState = 'playing';
-        }
-
-        // --- FUNZIONI DI DISEGNO ---
-        const stars = [];
-        function setupStars() {
-            // Aumentiamo il numero di stelle per un mondo più grande
-            for (let i = 0; i < 300; i++) {
-                stars.push({
-                    // Le stelle ora possono essere generate in tutto il mondo di gioco
-                    x: Math.random() * (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width),
-                    y: Math.random() * GAME_HEIGHT,
-                    radius: Math.random() * 1.5
-                });
-            }
-        }
-
-        function drawBackground() {
-            // Sfondo nero spaziale
-            ctx.fillStyle = '#00001a';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-            // Disegna le stelle (senza parallasse per debug)
-            ctx.fillStyle = 'white';
-            stars.forEach(star => {
-                // Disegna la stella solo se è visibile nella camera
-                const starX = star.x - scrollOffset;
-                if (starX > 0 && starX < GAME_WIDTH) {
-                    ctx.beginPath();
-                    ctx.arc(starX, star.y, star.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+        function spawnElectron() { const y = Math.random() * GAME_HEIGHT; const speed = 2 + Math.random() * 2; if (Math.random() > 0.5) electrons.push({ x: scrollOffset - 10, y: y, width: 10, height: 10, speed: speed }); else electrons.push({ x: scrollOffset + GAME_WIDTH + 10, y: y, width: 10, height: 10, speed: -speed }); }
+        function updateElectrons() {
+            electronTimer++; if (electronTimer > electronInterval) { spawnElectron(); electronTimer = 0; }
+            electrons.forEach((e, index) => {
+                e.x += e.speed;
+                if (e.x < scrollOffset - 20 || e.x > scrollOffset + GAME_WIDTH + 20) electrons.splice(index, 1);
+                if (player.x < e.x + e.width && player.x + player.width > e.x && player.y < e.y + e.height && player.y + player.height > e.y) resetLevel();
             });
         }
 
-        function drawPlayer() {
-            const p = player;
-            ctx.save();
-            // Trasla alla posizione corretta sullo schermo (mondo - camera)
-            ctx.translate(p.x - scrollOffset, p.y);
-
-            // Bagliore luminoso
-            ctx.shadowColor = quantumLeapReady ? 'gold' : '#33ff33';
-            ctx.shadowBlur = 15;
-
-            // Corpo dell'alieno
-            ctx.fillStyle = '#33cc33'; // Verde alieno
-            ctx.beginPath();
-            ctx.arc(p.width / 2, p.height / 2, p.width / 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Occhi
-            ctx.fillStyle = 'black';
-            ctx.beginPath();
-            ctx.arc(p.width / 3, p.height / 3, 3, 0, Math.PI * 2); // Occhio sinistro
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(p.width * 2/3, p.height / 3, 3, 0, Math.PI * 2); // Occhio destro
-            ctx.fill();
-
-            ctx.restore(); // Rimuove ombra e traslazione
+        function setupLevel() {
+            platforms.length = 0; quanta.length = 0; const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2; const orbitXRadius = 1000; const orbitYRadius = 180; const numPlatforms = 15; QUANTA_GOAL = numPlatforms - 1;
+            for (let i = 0; i < numPlatforms; i++) { const angle = (i / numPlatforms) * Math.PI * 2; const x = nucleusX + Math.cos(angle) * orbitXRadius; const y = nucleusY + Math.sin(angle) * orbitYRadius; platforms.push({ x: x, y: y, width: 150, height: 20 }); if (i > 0) quanta.push({ x: x + 60, y: y - 40, width: 15, height: 15, active: true }); }
+            platforms.push({ x: nucleusX, y: nucleusY - orbitYRadius - 100, width: 100, height: 20, goal: true });
         }
+        function resetLevel() { if (isAudioEnabled && !audioInitialized) initAudio(); else if (isAudioEnabled) playMusic(); setupLevel(); player.x = platforms[0].x + 50; player.y = platforms[0].y - 50; player.velocityY = 0; player.isJumping = true; scrollOffset = 0; score = 0; quantumLeapReady = false; electrons.length = 0; electronTimer = 0; gameState = 'playing'; }
 
-        function drawPlatforms() {
-            platforms.forEach(platform => {
-                ctx.fillStyle = platform.goal ? 'gold' : '#2c5b1b';
-                ctx.fillRect(platform.x - scrollOffset, platform.y, platform.width, platform.height);
-            });
-        }
+        function drawAtomBackground() { ctx.fillStyle = '#101020'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(nucleusX - scrollOffset, nucleusY, 1000, 180, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillStyle = 'red'; ctx.shadowColor = 'red'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(nucleusX - scrollOffset, nucleusY, 30, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+        function drawPlayer() { const p = player; ctx.save(); ctx.translate(p.x - scrollOffset, p.y); const progress = Math.min(score / QUANTA_GOAL, 1); const r = Math.floor(51 + (51 - 51) * progress); const g = Math.floor(204 + (255 - 204) * progress); const b = Math.floor(204 + (51 - 204) * progress); const currentColor = `rgb(${r}, ${g}, ${b})`; ctx.shadowColor = quantumLeapReady ? 'gold' : currentColor; ctx.shadowBlur = 15; ctx.fillStyle = currentColor; ctx.beginPath(); ctx.arc(p.width / 2, p.height / 2, p.width / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(p.width / 3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(p.width * 2/3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        function drawPlatforms() { platforms.forEach(p => { ctx.fillStyle = p.goal ? 'gold' : '#2c5b1b'; ctx.fillRect(p.x - scrollOffset, p.y, p.width, p.height); }); }
+        function drawQuanta() { ctx.fillStyle = 'gold'; quanta.forEach(q => { if (q.active) { ctx.beginPath(); ctx.arc(q.x - scrollOffset + q.width / 2, q.y + q.height / 2, q.width / 2, 0, Math.PI * 2); ctx.fill(); } }); }
+        function drawElectrons() { ctx.fillStyle = 'cyan'; electrons.forEach(e => { ctx.beginPath(); ctx.arc(e.x - scrollOffset, e.y, e.width / 2, 0, Math.PI * 2); ctx.fill(); }); }
+        function drawUI() { ctx.fillStyle = 'black'; ctx.font = '24px "Comic Sans MS"'; ctx.textAlign = 'left'; ctx.fillText('Quanti: ' + score + ' / ' + QUANTA_GOAL, 20, 30); if (quantumLeapReady) { ctx.fillStyle = '#0000cd'; ctx.font = 'bold 20px "Comic Sans MS"'; ctx.textAlign = 'center'; ctx.fillText('SALTO QUANTICO PRONTO!', GAME_WIDTH / 2, 30); } }
+        function drawAudioButton() { const btn = audioToggleButton; ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 3; ctx.strokeRect(btn.x, btn.y, btn.width, btn.height); ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#4a4a4a'; if (isAudioEnabled) ctx.fillText('🔊', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2); else ctx.fillText('🔇', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2); }
+        function drawFullscreenButton() { if (!isFullscreenSupported) return; ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 3; const { x, y, width: w, height: h } = fullscreenButton; const L = 10; ctx.beginPath(); ctx.moveTo(x, y + L); ctx.lineTo(x, y); ctx.lineTo(x + L, y); ctx.moveTo(x + w - L, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + L); ctx.moveTo(x, y + h - L); ctx.lineTo(x, y + h); ctx.lineTo(x + L, y + h); ctx.moveTo(x + w - L, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - L); ctx.stroke(); }
+        function drawStartScreen() { ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.font = '36px "Comic Sans MS"'; ctx.fillText('Quantum Leap', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 150); ctx.font = '20px "Comic Sans MS"'; ctx.fillText("Nel mondo quantistico, l'energia non è continua.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80); ctx.fillText("Esiste in pacchetti discreti, chiamati 'quanti'.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50); ctx.fillStyle = 'gold'; ctx.fillText("La tua missione: raccogli abbastanza quanti di energia...", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 10); ctx.fillText("...per compiere un 'Salto Quantico'!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20); const btn = startButton; ctx.fillStyle = '#2c5b1b'; ctx.fillRect(btn.x, btn.y, btn.width, btn.height); ctx.fillStyle = 'white'; ctx.font = 'bold 28px "Comic Sans MS"'; ctx.fillText("Inizia!", btn.x + btn.width / 2, btn.y + btn.height / 2 + 5); }
+        function drawControls() { ctx.globalAlpha = 0.5; for (const key in touchControls) { const button = touchControls[key]; ctx.fillStyle = keys[button.key] ? '#6c6c6c' : '#4a4a4a'; ctx.beginPath(); ctx.rect(button.x, button.y, button.width, button.height); ctx.fill(); ctx.fillStyle = 'white'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; let text = ''; if (key === 'left') text = '◀'; else if (key === 'right') text = '▶'; else if (key === 'jump') text = '▲'; ctx.fillText(text, button.x + button.width / 2, button.y + button.height / 2 + 2); } ctx.globalAlpha = 1.0; }
+        function drawCompleteScreen() { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.font = '40px "Comic Sans MS"'; ctx.fillText('Livello Completato!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80); ctx.font = '22px "Comic Sans MS"'; ctx.fillText("Hai fatto un Salto Quantico!", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40); ctx.fillStyle = 'gold'; ctx.font = '18px "Comic Sans MS"'; ctx.fillText("Proprio come gli elettroni, hai assorbito energia", GAME_WIDTH / 2, GAME_HEIGHT / 2); ctx.fillText("in 'pacchetti' (i quanti) per saltare più in alto!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30); ctx.fillStyle = 'white'; ctx.font = '22px "Comic Sans MS"'; ctx.fillText('Tocca un pulsante o premi un tasto per rigiocare', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80); }
 
-        function drawQuanta() {
-            ctx.fillStyle = 'gold';
-            quanta.forEach(q => {
-                if (q.active) {
-                    ctx.beginPath();
-                    ctx.arc(q.x - scrollOffset + q.width / 2, q.y + q.height / 2, q.width / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-        }
-
-        function drawUI() {
-            ctx.fillStyle = 'black';
-            ctx.font = '24px "Comic Sans MS"';
-            ctx.textAlign = 'left';
-            ctx.fillText('Quanti: ' + score + ' / ' + QUANTA_GOAL, 20, 30);
-            if (quantumLeapReady) {
-                ctx.fillStyle = '#0000cd';
-                ctx.font = 'bold 20px "Comic Sans MS"';
-                ctx.textAlign = 'center';
-                ctx.fillText('SALTO QUANTICO PRONTO!', GAME_WIDTH / 2, 30);
-            }
-        }
-
-        function drawAudioButton() {
-            const btn = audioToggleButton;
-            ctx.strokeStyle = '#4a4a4a';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
-
-            ctx.font = 'bold 24px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#4a4a4a';
-
-            if (isAudioEnabled) {
-                // Icona altoparlante
-                ctx.fillText('🔊', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2);
-            } else {
-                // Icona altoparlante muto
-                ctx.fillText('🔇', btn.x + btn.width / 2, btn.y + btn.height / 2 + 2);
-            }
-        }
-
-        function drawFullscreenButton() {
-            if (!isFullscreenSupported) return;
-            ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 3;
-            const { x, y, width: w, height: h } = fullscreenButton;
-            const L = 10;
-            ctx.beginPath();
-            ctx.moveTo(x, y + L); ctx.lineTo(x, y); ctx.lineTo(x + L, y);
-            ctx.moveTo(x + w - L, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + L);
-            ctx.moveTo(x, y + h - L); ctx.lineTo(x, y + h); ctx.lineTo(x + L, y + h);
-            ctx.moveTo(x + w - L, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - L);
-            ctx.stroke();
-        }
-
-        function drawStartScreen() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-
-            ctx.font = '36px "Comic Sans MS"';
-            ctx.fillText('Quantum Leap', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 150);
-
-            ctx.font = '20px "Comic Sans MS"';
-            ctx.fillText("Nel mondo quantistico, l'energia non è continua.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
-            ctx.fillText("Esiste in pacchetti discreti, chiamati 'quanti'.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
-
-            ctx.fillStyle = 'gold';
-            ctx.fillText("La tua missione: raccogli abbastanza quanti di energia...", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 10);
-            ctx.fillText("...per compiere un 'Salto Quantico'!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20);
-
-            // Disegna il pulsante di avvio
-            const btn = startButton;
-            ctx.fillStyle = '#2c5b1b';
-            ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 28px "Comic Sans MS"';
-            ctx.fillText("Inizia!", btn.x + btn.width / 2, btn.y + btn.height / 2 + 5);
-        }
-
-        function drawControls() {
-            ctx.globalAlpha = 0.5;
-            for (const key in touchControls) {
-                const button = touchControls[key];
-                ctx.fillStyle = keys[button.key] ? '#6c6c6c' : '#4a4a4a';
-                ctx.beginPath();
-                ctx.rect(button.x, button.y, button.width, button.height);
-                ctx.fill();
-                ctx.fillStyle = 'white'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                let text = '';
-                if (key === 'left') text = '◀';
-                else if (key === 'right') text = '▶';
-                else if (key === 'jump') text = '▲';
-                ctx.fillText(text, button.x + button.width / 2, button.y + button.height / 2 + 2);
-            }
-            ctx.globalAlpha = 1.0;
-        }
-
-        function drawCompleteScreen() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            ctx.fillStyle = 'white'; ctx.textAlign = 'center';
-            ctx.font = '40px "Comic Sans MS"'; ctx.fillText('Livello Completato!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
-            ctx.font = '22px "Comic Sans MS"'; ctx.fillText("Hai fatto un Salto Quantico!", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
-            ctx.fillStyle = 'gold'; ctx.font = '18px "Comic Sans MS"';
-            ctx.fillText("Proprio come gli elettroni, hai assorbito energia", GAME_WIDTH / 2, GAME_HEIGHT / 2);
-            ctx.fillText("in 'pacchetti' (i quanti) per saltare più in alto!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30);
-            ctx.fillStyle = 'white'; ctx.font = '22px "Comic Sans MS"';
-            ctx.fillText('Tocca un pulsante o premi un tasto per rigiocare', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
-        }
-
-        // --- GAME LOOP ---
         function gameLoop() {
-            if (gameState === 'playing') {
-                update();
-            }
-
-            // Disegna sul canvas interno
+            if (gameState === 'playing') update();
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             if (gameState === 'playing') {
-                drawBackground(); // Disegna il nuovo sfondo
-                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
+                drawAtomBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
+                drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
             } else if (gameState === 'start') {
                 drawStartScreen();
             } else if (gameState === 'complete') {
-                // Ridisegna l'ultima schermata di gioco e sovrappone la schermata di completamento
-                ctx.fillStyle = '#d0e7f9'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
+                drawAtomBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
+                drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
                 drawCompleteScreen();
             }
-
-            // Copia e scala sul canvas visibile
             displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
             displayCtx.drawImage(gameCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
-
             requestAnimationFrame(gameLoop);
         }
 
-        // --- RIDIMENSIONAMENTO ---
-        function resize() {
-            const ratio = GAME_WIDTH / GAME_HEIGHT;
-            let newWidth = window.innerWidth;
-            let newHeight = window.innerHeight;
-            let newRatio = newWidth / newHeight;
-            if (newRatio > ratio) newWidth = newHeight * ratio;
-            else newHeight = newWidth / ratio;
+        function resize() { const ratio = GAME_WIDTH / GAME_HEIGHT; let newWidth = window.innerWidth; let newHeight = window.innerHeight; let newRatio = newWidth / newHeight; if (newRatio > ratio) newWidth = newHeight * ratio; else newHeight = newWidth / ratio; displayCanvas.style.width = newWidth + 'px'; displayCanvas.style.height = newHeight + 'px'; displayCanvas.width = newWidth; displayCanvas.height = newHeight; scale = newWidth / GAME_WIDTH; }
 
-            displayCanvas.style.width = newWidth + 'px';
-            displayCanvas.style.height = newHeight + 'px';
-            displayCanvas.width = newWidth;
-            displayCanvas.height = newHeight;
-            scale = newWidth / GAME_WIDTH;
-        }
-
-        // --- AVVIO ---
         window.addEventListener('resize', resize, false);
-        setupQuanta();
-        setupStars(); // Inizializza le stelle
+        setupLevel();
         resize();
         gameLoop();
     </script>
