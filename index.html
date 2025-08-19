@@ -75,6 +75,16 @@
         const startButton = { x: GAME_WIDTH / 2 - 100, y: GAME_HEIGHT / 2 + 60, width: 200, height: 50 };
         const isFullscreenSupported = typeof document.fullscreenEnabled !== 'undefined' || typeof document.webkitFullscreenEnabled !== 'undefined';
 
+        // --- AUDIO ---
+        // INSERISCI QUI I LINK DIRETTI AI TUOI FILE AUDIO
+        // Se un link non è valido o il file non viene trovato, il gioco continuerà senza quel suono.
+        const audioSources = {
+            music: "MUSICA_DI_SOTTOFONDO.mp3",
+            jump: "SUONO_SALTO.wav",
+            collect: "SUONO_RACCOLTA.wav"
+        };
+        const audio = {}; // Verrà popolato dopo l'interazione dell'utente
+
         // --- CONTROLLI ---
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
@@ -131,6 +141,36 @@
         }, { passive: false });
 
         // --- LOGICA DI GIOCO ---
+        let audioInitialized = false;
+        function initAudio() {
+            if (audioInitialized) return;
+            // La creazione e il caricamento degli elementi audio avvengono solo dopo un'azione dell'utente
+            audio.music = new Audio(audioSources.music);
+            audio.music.loop = true;
+            audio.jump = new Audio(audioSources.jump);
+            audio.collect = new Audio(audioSources.collect);
+            audioInitialized = true;
+            playMusic();
+        }
+
+        function playSound(sound) {
+            if (audioInitialized && audio[sound]) {
+                audio[sound].currentTime = 0;
+                audio[sound].play().catch(err => {
+                    // Non fare nulla se c'è un errore (es. file non trovato), il gioco continua
+                    console.log("Impossibile riprodurre il suono:", err);
+                });
+            }
+        }
+
+        function playMusic() {
+            if (audioInitialized && audio.music) {
+                audio.music.play().catch(err => {
+                    console.log("Impossibile riprodurre la musica:", err);
+                });
+            }
+        }
+
         function toggleFullscreen() {
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                 document.documentElement.requestFullscreen?.().catch(err => console.log(err));
@@ -173,6 +213,7 @@
                     if (player.x < quantumX + q.width && player.x + player.width > quantumX && player.y < q.y + q.height && player.y + player.height > q.y) {
                         q.active = false;
                         score++;
+                        playSound('collect');
                         if (score >= QUANTA_GOAL) quantumLeapReady = true;
                     }
                 }
@@ -180,6 +221,7 @@
 
             if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
                 player.isJumping = true;
+                playSound('jump');
                 player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength;
                 if (quantumLeapReady) quantumLeapReady = false;
             }
@@ -194,6 +236,7 @@
         }
 
         function resetLevel() {
+            initAudio(); // Inizializza e avvia l'audio alla prima interazione
             player.x = 100; player.y = 250; player.velocityY = 0; player.isJumping = true;
             scrollOffset = 0; score = 0; quantumLeapReady = false;
             setupQuanta();
