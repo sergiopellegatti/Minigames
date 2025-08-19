@@ -2,202 +2,187 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Quantum Leap</title>
     <style>
         body {
-            background-color: #f0f8ff;
+            background-color: #000;
             font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
-            color: #333;
+            color: #fff;
             margin: 0;
             padding: 0;
             overflow: hidden;
-            /* Layout Flexbox per centrare tutto */
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            text-align: center;
         }
-
-        h1 {
-            color: #ff4500;
-            margin: 10px 0;
-            flex-shrink: 0; /* Impedisce al titolo di restringersi */
-        }
-
-        p {
-            margin: 5px 0;
-            flex-shrink: 0; /* Impedisce al paragrafo di restringersi */
-        }
-
         canvas {
-            border: 3px solid #000;
-            background-color: #fff;
             display: block;
-            /* Stili di responsività migliorati */
-            max-width: 95vw;
-            max-height: 95vh;
-            aspect-ratio: 800 / 400;
-            object-fit: contain;
+            image-rendering: -webkit-optimize-contrast; /* Per pixel art più nitida */
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
         }
     </style>
 </head>
 <body>
-    <h1>Quantum Leap</h1>
-    <p>Raccogli i quanti di energia per fare il Salto Quantico!</p>
-    <p><strong>Comandi:</strong> Usa le Frecce o i pulsanti a schermo.</p>
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="displayCanvas"></canvas>
 
     <script>
-        // Impostazione del canvas
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        // --- IMPOSTAZIONE ---
+        const displayCanvas = document.getElementById('displayCanvas');
+        const displayCtx = displayCanvas.getContext('2d');
 
-        // Dimensioni del canvas - lo rendiamo reattivo alla dimensione della finestra
-        canvas.width = 800;
-        canvas.height = 400;
+        const gameCanvas = document.createElement('canvas');
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 450;
+        gameCanvas.width = GAME_WIDTH;
+        gameCanvas.height = GAME_HEIGHT;
+        const ctx = gameCanvas.getContext('2d');
 
-        // Variabili di gioco
+        // --- VARIABILI DI GIOCO ---
         const gravity = 0.6;
         const jumpStrength = -15;
         const quantumJumpStrength = -28;
         const QUANTA_GOAL = 10;
 
         let keys = {};
+        let scale = 1;
         let scrollOffset = 0;
         let score = 0;
         let quantumLeapReady = false;
-        let gameState = 'start'; // 'start', 'playing', 'complete'
+        let gameState = 'start';
 
-        const player = {
-            x: 100, y: 250, width: 40, height: 40,
-            color: 'deepskyblue', speed: 5,
-            velocityX: 0, velocityY: 0, isJumping: true
-        };
-
-        // Definizione dei pulsanti per i controlli touch
-        const touchControls = {
-            left: { x: 50, y: canvas.height - 90, width: 70, height: 70, key: 'ArrowLeft' },
-            right: { x: 140, y: canvas.height - 90, width: 70, height: 70, key: 'ArrowRight' },
-            jump: { x: canvas.width - 120, y: canvas.height - 90, width: 70, height: 70, key: 'Space' }
-        };
+        const player = { x: 100, y: 250, width: 40, height: 40, color: 'deepskyblue', speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
 
         const platforms = [
-            { x: 0, y: canvas.height - 40, width: 400, height: 40 },
-            { x: 500, y: canvas.height - 100, width: 200, height: 20 },
-            { x: 800, y: canvas.height - 180, width: 200, height: 20 },
-            { x: 1150, y: canvas.height - 250, width: 150, height: 20 },
-            { x: 1500, y: canvas.height - 150, width: 300, height: 20 },
-            { x: 1900, y: canvas.height - 250, width: 150, height: 20 },
-            { x: 2200, y: canvas.height - 450, width: 100, height: 20, goal: true }
+            { x: 0, y: GAME_HEIGHT - 40, width: 400, height: 40 },
+            { x: 500, y: GAME_HEIGHT - 100, width: 200, height: 20 },
+            { x: 800, y: GAME_HEIGHT - 180, width: 200, height: 20 },
+            { x: 1150, y: GAME_HEIGHT - 250, width: 150, height: 20 },
+            { x: 1500, y: GAME_HEIGHT - 150, width: 300, height: 20 },
+            { x: 1900, y: GAME_HEIGHT - 250, width: 150, height: 20 },
+            { x: 2200, y: GAME_HEIGHT - 400, width: 100, height: 20, goal: true }
         ];
 
         const quanta = [];
-        function setupQuanta() {
-            quanta.length = 0;
-            const quantaPositions = [
-                { x: 350, y: canvas.height - 80 }, { x: 550, y: canvas.height - 140 },
-                { x: 650, y: canvas.height - 140 }, { x: 850, y: canvas.height - 220 },
-                { x: 950, y: canvas.height - 220 }, { x: 1200, y: canvas.height - 300 },
-                { x: 1550, y: canvas.height - 190 }, { x: 1650, y: canvas.height - 190 },
-                { x: 1950, y: canvas.height - 290 }, { x: 2000, y: canvas.height - 290 }
-            ];
-            quantaPositions.forEach(pos => {
-                quanta.push({ x: pos.x, y: pos.y, width: 15, height: 15, active: true });
-            });
-        }
+        const touchControls = {
+            left: { x: 50, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowLeft' },
+            right: { x: 140, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowRight' },
+            jump: { x: GAME_WIDTH - 120, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'Space' }
+        };
+        const fullscreenButton = { x: GAME_WIDTH - 50, y: 10, width: 40, height: 40 };
+        const isFullscreenSupported = typeof document.fullscreenEnabled !== 'undefined' || typeof document.webkitFullscreenEnabled !== 'undefined';
 
         // --- CONTROLLI ---
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // Funzioni di supporto per il Touch
-        function getTouchPos(canvasDom, touchEvent) {
-            const rect = canvasDom.getBoundingClientRect();
-            // Gestisce sia eventi touch singoli che multipli
-            const touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
-            return {
-                x: touch.clientX - rect.left,
-                y: touch.clientY - rect.top
-            };
+        function getTouchPos(touch) {
+            const rect = displayCanvas.getBoundingClientRect();
+            return { x: (touch.clientX - rect.left) / scale, y: (touch.clientY - rect.top) / scale };
         }
 
         function isInside(pos, button) {
-            return pos.x > button.x && pos.x < button.x + button.width &&
-                   pos.y < button.y + button.height && pos.y > button.y;
+            return pos.x > button.x && pos.x < button.x + button.width && pos.y < button.y + button.height && pos.y > button.y;
         }
 
-        // Logica unificata per la gestione del touch
         function handleTouches(e) {
-            e.preventDefault(); // Previene comportamenti di default come lo scroll
-            // Resetta prima tutti i tasti controllati dal touch
-            for (const key in touchControls) {
-                keys[touchControls[key].key] = false;
-            }
-            // Ora attiva i tasti che sono attualmente toccati
+            e.preventDefault();
+            Object.keys(touchControls).forEach(k => keys[touchControls[k].key] = false);
             for (let i = 0; i < e.touches.length; i++) {
-                const touchPos = getTouchPos(canvas, e.touches[i]);
+                const pos = getTouchPos(e.touches[i]);
                 for (const key in touchControls) {
-                    const button = touchControls[key];
-                    if (isInside(touchPos, button)) {
-                        keys[button.key] = true;
-                    }
+                    if (isInside(pos, touchControls[key])) keys[touchControls[key].key] = true;
                 }
             }
         }
 
-        // Aggiunge gli ascoltatori di eventi per il touch
-        canvas.addEventListener('touchstart', handleTouches, false);
-        canvas.addEventListener('touchmove', handleTouches, false);
-
-        canvas.addEventListener('touchend', function(e) {
-            // Prima controlla se è stato toccato un pulsante dell'UI come quello per lo schermo intero
-            const pos = getTouchPos(canvas, e);
-            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
-                toggleFullscreen();
+        displayCanvas.addEventListener('touchstart', handleTouches, { passive: false });
+        displayCanvas.addEventListener('touchmove', handleTouches, { passive: false });
+        displayCanvas.addEventListener('touchend', function(e) {
+            const touch = e.changedTouches[0];
+            if (touch) {
+                const pos = getTouchPos(touch);
+                if (isFullscreenSupported && isInside(pos, fullscreenButton)) toggleFullscreen();
             }
-            // Poi, esegue la normale logica di gestione dei controlli di gioco
             handleTouches(e);
-        }, false);
+        }, { passive: false });
 
-        // Aggiunge l'ascoltatore per il pulsante fullscreen
-        canvas.addEventListener('click', function(e) {
-            const pos = getTouchPos(canvas, e);
-            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
-                toggleFullscreen();
-            }
-        });
-
-
-        // --- FUNZIONI DI DISEGNO ---
-        const fullscreenButton = { x: canvas.width - 50, y: 10, width: 40, height: 40 };
-        const isFullscreenSupported = document.fullscreenEnabled || document.webkitFullscreenEnabled;
-
+        // --- LOGICA DI GIOCO ---
         function toggleFullscreen() {
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                const el = document.documentElement;
-                if (el.requestFullscreen) {
-                    el.requestFullscreen();
-                } else if (el.webkitRequestFullscreen) { /* Safari */
-                    el.webkitRequestFullscreen();
-                }
+                document.documentElement.requestFullscreen?.().catch(err => console.log(err));
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) { /* Safari */
-                    document.webkitExitFullscreen();
-                }
+                document.exitFullscreen?.();
             }
         }
 
+        function update() {
+            if (keys['ArrowLeft'] || keys['KeyA']) player.velocityX = -player.speed;
+            else if (keys['ArrowRight'] || keys['KeyD']) player.velocityX = player.speed;
+            else player.velocityX = 0;
+            player.x += player.velocityX;
+
+            if (player.x > GAME_WIDTH / 2 && scrollOffset < (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width - GAME_WIDTH)) {
+                scrollOffset += player.speed;
+                player.x -= player.speed;
+            }
+            if (player.x < 100 && scrollOffset > 0) {
+                scrollOffset -= player.speed;
+                player.x += player.speed;
+            }
+
+            player.y += player.velocityY;
+            player.velocityY += gravity;
+
+            platforms.forEach(platform => {
+                const platformX = platform.x - scrollOffset;
+                if (player.x + player.width > platformX && player.x < platformX + platform.width && player.y + player.height >= platform.y && player.y + player.height <= platform.y + player.velocityY && player.velocityY >= 0) {
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                    if (platform.goal) gameState = 'complete';
+                }
+            });
+
+            quanta.forEach(q => {
+                if (q.active) {
+                    const quantumX = q.x - scrollOffset;
+                    if (player.x < quantumX + q.width && player.x + player.width > quantumX && player.y < q.y + q.height && player.y + player.height > q.y) {
+                        q.active = false;
+                        score++;
+                        if (score >= QUANTA_GOAL) quantumLeapReady = true;
+                    }
+                }
+            });
+
+            if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
+                player.isJumping = true;
+                player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength;
+                if (quantumLeapReady) quantumLeapReady = false;
+            }
+
+            if (player.y > GAME_HEIGHT) resetLevel();
+        }
+
+        function setupQuanta() {
+            quanta.length = 0;
+            const quantaPositions = [ { x: 350, y: GAME_HEIGHT - 80 }, { x: 550, y: GAME_HEIGHT - 140 }, { x: 650, y: GAME_HEIGHT - 140 }, { x: 850, y: GAME_HEIGHT - 220 }, { x: 950, y: GAME_HEIGHT - 220 }, { x: 1200, y: GAME_HEIGHT - 300 }, { x: 1550, y: GAME_HEIGHT - 190 }, { x: 1650, y: GAME_HEIGHT - 190 }, { x: 1950, y: GAME_HEIGHT - 290 }, { x: 2000, y: GAME_HEIGHT - 290 } ];
+            quantaPositions.forEach(pos => quanta.push({ x: pos.x, y: pos.y, width: 15, height: 15, active: true }));
+        }
+
+        function resetLevel() {
+            player.x = 100; player.y = 250; player.velocityY = 0; player.isJumping = true;
+            scrollOffset = 0; score = 0; quantumLeapReady = false;
+            setupQuanta();
+            gameState = 'playing';
+        }
+
+        // --- FUNZIONI DI DISEGNO ---
         function drawPlayer() {
             ctx.fillStyle = player.color;
-            if (quantumLeapReady) {
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = "gold";
-            }
+            if (quantumLeapReady) { ctx.shadowBlur = 20; ctx.shadowColor = "gold"; }
             ctx.fillRect(player.x, player.y, player.width, player.height);
             ctx.shadowBlur = 0;
         }
@@ -222,220 +207,120 @@
 
         function drawUI() {
             ctx.fillStyle = 'black';
-            ctx.font = '24px "Comic Sans MS", "Chalkboard SE", sans-serif';
+            ctx.font = '24px "Comic Sans MS"';
             ctx.textAlign = 'left';
             ctx.fillText('Quanti: ' + score + ' / ' + QUANTA_GOAL, 20, 30);
-
             if (quantumLeapReady) {
                 ctx.fillStyle = '#0000cd';
-                ctx.font = 'bold 20px "Comic Sans MS", "Chalkboard SE", sans-serif';
+                ctx.font = 'bold 20px "Comic Sans MS"';
                 ctx.textAlign = 'center';
-                ctx.fillText('SALTO QUANTICO PRONTO!', canvas.width / 2, 30);
+                ctx.fillText('SALTO QUANTICO PRONTO!', GAME_WIDTH / 2, 30);
             }
         }
 
         function drawFullscreenButton() {
             if (!isFullscreenSupported) return;
-
-            ctx.strokeStyle = '#4a4a4a';
-            ctx.lineWidth = 3;
-
-            const x = fullscreenButton.x;
-            const y = fullscreenButton.y;
-            const w = fullscreenButton.width;
-            const h = fullscreenButton.height;
-            const L = 10; // Lunghezza della linea
-
+            ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 3;
+            const { x, y, width: w, height: h } = fullscreenButton;
+            const L = 10;
             ctx.beginPath();
-            // Alto-sinistra
-            ctx.moveTo(x, y + L);
-            ctx.lineTo(x, y);
-            ctx.lineTo(x + L, y);
-            // Alto-destra
-            ctx.moveTo(x + w - L, y);
-            ctx.lineTo(x + w, y);
-            ctx.lineTo(x + w, y + L);
-            // Basso-sinistra
-            ctx.moveTo(x, y + h - L);
-            ctx.lineTo(x, y + h);
-            ctx.lineTo(x + L, y + h);
-            // Basso-destra
-            ctx.moveTo(x + w - L, y + h);
-            ctx.lineTo(x + w, y + h);
-            ctx.lineTo(x + w, y + h - L);
+            ctx.moveTo(x, y + L); ctx.lineTo(x, y); ctx.lineTo(x + L, y);
+            ctx.moveTo(x + w - L, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + L);
+            ctx.moveTo(x, y + h - L); ctx.lineTo(x, y + h); ctx.lineTo(x + L, y + h);
+            ctx.moveTo(x + w - L, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - L);
             ctx.stroke();
         }
 
         function drawControls() {
             ctx.globalAlpha = 0.5;
-
             for (const key in touchControls) {
                 const button = touchControls[key];
-                // Se il tasto corrispondente è premuto, cambia colore per dare feedback
-                if (keys[button.key]) {
-                    ctx.fillStyle = '#6c6c6c'; // Grigio più scuro
-                } else {
-                    ctx.fillStyle = '#4a4a4a'; // Grigio standard
-                }
-
+                ctx.fillStyle = keys[button.key] ? '#6c6c6c' : '#4a4a4a';
                 ctx.beginPath();
-                // Usa rect per la massima compatibilità, disegnando un quadrato
                 ctx.rect(button.x, button.y, button.width, button.height);
                 ctx.fill();
-
-                // Aggiunge l'icona
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 30px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'white'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 let text = '';
                 if (key === 'left') text = '◀';
                 else if (key === 'right') text = '▶';
                 else if (key === 'jump') text = '▲';
                 ctx.fillText(text, button.x + button.width / 2, button.y + button.height / 2 + 2);
             }
-            ctx.globalAlpha = 1.0; // Resetta la trasparenza per gli altri elementi
+            ctx.globalAlpha = 1.0;
         }
 
         function drawStartScreen() {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.font = '40px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText('Quantum Leap!', canvas.width / 2, canvas.height / 2 - 100);
-            ctx.font = '22px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText("Lezione 1: L'Energia è Quantizzata!", canvas.width / 2, canvas.height / 2 - 50);
-            ctx.font = '18px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText("Aiuta Quarky a raccogliere i pacchetti di energia (i quanti).", canvas.width / 2, canvas.height / 2);
-            ctx.fillText("Raccoglili tutti per fare un Salto Quantico!", canvas.width / 2, canvas.height / 2 + 30);
-            ctx.font = '24px "Comic Sans MS", "Chalkboard SE", sans-serif';
-    ctx.fillText("Tocca un pulsante o premi un tasto per iniziare", canvas.width / 2, canvas.height / 2 + 80);
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+            ctx.font = '40px "Comic Sans MS"'; ctx.fillText('Quantum Leap!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100);
+            ctx.font = '22px "Comic Sans MS"'; ctx.fillText("Lezione 1: L'Energia è Quantizzata!", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
+            ctx.font = '18px "Comic Sans MS"'; ctx.fillText("Aiuta Quarky a raccogliere i pacchetti di energia (i quanti).", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+            ctx.fillText("Raccoglili tutti per fare un Salto Quantico!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30);
+            ctx.font = '24px "Comic Sans MS"'; ctx.fillText("Tocca un pulsante o premi un tasto per iniziare", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
         }
 
         function drawCompleteScreen() {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.font = '40px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText('Livello Completato!', canvas.width / 2, canvas.height / 2 - 80);
-            ctx.font = '22px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText("Hai fatto un Salto Quantico!", canvas.width / 2, canvas.height / 2 - 40);
-            ctx.fillStyle = 'gold';
-            ctx.font = '18px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText("Proprio come gli elettroni, hai assorbito energia", canvas.width / 2, canvas.height / 2);
-            ctx.fillText("in 'pacchetti' (i quanti) per saltare più in alto!", canvas.width / 2, canvas.height / 2 + 30);
-            ctx.fillStyle = 'white';
-            ctx.font = '22px "Comic Sans MS", "Chalkboard SE", sans-serif';
-    ctx.fillText('Tocca un pulsante o premi un tasto per rigiocare', canvas.width / 2, canvas.height / 2 + 80);
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+            ctx.font = '40px "Comic Sans MS"'; ctx.fillText('Livello Completato!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
+            ctx.font = '22px "Comic Sans MS"'; ctx.fillText("Hai fatto un Salto Quantico!", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
+            ctx.fillStyle = 'gold'; ctx.font = '18px "Comic Sans MS"';
+            ctx.fillText("Proprio come gli elettroni, hai assorbito energia", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+            ctx.fillText("in 'pacchetti' (i quanti) per saltare più in alto!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30);
+            ctx.fillStyle = 'white'; ctx.font = '22px "Comic Sans MS"';
+            ctx.fillText('Tocca un pulsante o premi un tasto per rigiocare', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
         }
 
-        // Funzione per aggiornare lo stato del gioco
-        function update() {
-            if (keys['ArrowLeft'] || keys['KeyA']) player.velocityX = -player.speed;
-            else if (keys['ArrowRight'] || keys['KeyD']) player.velocityX = player.speed;
-            else player.velocityX = 0;
-            player.x += player.velocityX;
-
-            if (player.x > canvas.width / 2 && scrollOffset < (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width - canvas.width)) {
-                scrollOffset += player.speed;
-                player.x -= player.speed;
-            }
-            if (player.x < 100 && scrollOffset > 0) {
-                scrollOffset -= player.speed;
-                player.x += player.speed;
-            }
-
-            player.y += player.velocityY;
-            player.velocityY += gravity;
-
-            platforms.forEach(platform => {
-                const platformX = platform.x - scrollOffset;
-                if (player.x + player.width > platformX && player.x < platformX + platform.width &&
-                    player.y + player.height >= platform.y && player.y + player.height <= platform.y + player.velocityY && player.velocityY >= 0) {
-                    player.y = platform.y - player.height;
-                    player.velocityY = 0;
-                    player.isJumping = false;
-                    if (platform.goal) {
-                        gameState = 'complete';
-                    }
-                }
-            });
-
-            quanta.forEach(q => {
-                if (q.active) {
-                    const quantumX = q.x - scrollOffset;
-                    if (player.x < quantumX + q.width && player.x + player.width > quantumX &&
-                        player.y < q.y + q.height && player.y + player.height > q.y) {
-                        q.active = false;
-                        score++;
-                        if (score >= QUANTA_GOAL) {
-                            quantumLeapReady = true;
-                        }
-                    }
-                }
-            });
-
-            if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
-                player.isJumping = true;
-                if (quantumLeapReady) {
-                    player.velocityY = quantumJumpStrength;
-                    quantumLeapReady = false;
-                } else {
-                    player.velocityY = jumpStrength;
-                }
-            }
-
-            if (player.y > canvas.height) resetLevel();
-        }
-
-        function resetLevel() {
-            player.x = 100;
-            player.y = 250;
-            player.velocityY = 0;
-            player.isJumping = true;
-            scrollOffset = 0;
-            score = 0;
-            quantumLeapReady = false;
-            setupQuanta();
-            gameState = 'playing';
-        }
-
-        // Il game loop principale
+        // --- GAME LOOP ---
         function gameLoop() {
-            switch (gameState) {
-                case 'start':
-                    drawStartScreen();
-            // Inizia il gioco con qualsiasi tasto di controllo o Invio
-            if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
-                        resetLevel();
-                    }
-                    break;
-                case 'playing':
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    drawPlatforms();
-                    drawQuanta();
-                    drawPlayer();
-                    drawUI();
-                    drawControls();
-            drawFullscreenButton();
-                    update();
-                    break;
-                case 'complete':
-                    drawCompleteScreen();
-             // Riavvia il gioco con qualsiasi tasto di controllo o Invio
-            if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
-                // Aggiungiamo un piccolo ritardo per evitare riavvii istantanei
-                setTimeout(resetLevel, 200);
-                    }
-                    break;
+            if (gameState === 'playing') {
+                update();
+            } else if (gameState === 'start' || gameState === 'complete') {
+                if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
+                    if (gameState === 'complete') setTimeout(resetLevel, 200); else resetLevel();
+                }
             }
+
+            // Disegna sul canvas interno
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            if (gameState === 'playing') {
+                ctx.fillStyle = '#d0e7f9'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
+            } else if (gameState === 'start') {
+                drawStartScreen();
+            } else if (gameState === 'complete') {
+                drawCompleteScreen();
+            }
+
+            // Copia e scala sul canvas visibile
+            displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+            displayCtx.drawImage(gameCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
+
             requestAnimationFrame(gameLoop);
         }
 
-        // Avvio del gioco
-        console.log("Benvenuto in Quantum Leap! Premi Invio per iniziare.");
+        // --- RIDIMENSIONAMENTO ---
+        function resize() {
+            const ratio = GAME_WIDTH / GAME_HEIGHT;
+            let newWidth = window.innerWidth;
+            let newHeight = window.innerHeight;
+            let newRatio = newWidth / newHeight;
+            if (newRatio > ratio) newWidth = newHeight * ratio;
+            else newHeight = newWidth / ratio;
+
+            displayCanvas.style.width = newWidth + 'px';
+            displayCanvas.style.height = newHeight + 'px';
+            displayCanvas.width = newWidth;
+            displayCanvas.height = newHeight;
+            scale = newWidth / GAME_WIDTH;
+        }
+
+        // --- AVVIO ---
+        window.addEventListener('resize', resize, false);
+        setupQuanta();
+        resize();
         gameLoop();
     </script>
 </body>
