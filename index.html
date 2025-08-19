@@ -271,12 +271,13 @@
         // --- FUNZIONI DI DISEGNO ---
         const stars = [];
         function setupStars() {
-            for (let i = 0; i < 100; i++) {
+            // Aumentiamo il numero di stelle per un mondo più grande
+            for (let i = 0; i < 300; i++) {
                 stars.push({
-                    x: Math.random() * GAME_WIDTH,
+                    // Le stelle ora possono essere generate in tutto il mondo di gioco
+                    x: Math.random() * (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width),
                     y: Math.random() * GAME_HEIGHT,
-                    radius: Math.random() * 1.5,
-                    parallax: 0.1 + Math.random() * 0.4 // Lentezza diversa per la parallasse
+                    radius: Math.random() * 1.5
                 });
             }
         }
@@ -286,15 +287,16 @@
             ctx.fillStyle = '#00001a';
             ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-            // Disegna le stelle
+            // Disegna le stelle (senza parallasse per debug)
             ctx.fillStyle = 'white';
             stars.forEach(star => {
-                const x = (star.x - scrollOffset * star.parallax) % GAME_WIDTH;
-                const y = star.y;
-                if (x < 0) x += GAME_WIDTH; // Gestisce il wrap around
-                ctx.beginPath();
-                ctx.arc(x, y, star.radius, 0, Math.PI * 2);
-                ctx.fill();
+                // Disegna la stella solo se è visibile nella camera
+                const starX = star.x - scrollOffset;
+                if (starX > 0 && starX < GAME_WIDTH) {
+                    ctx.beginPath();
+                    ctx.arc(starX, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             });
         }
 
