@@ -26,15 +26,20 @@
         const gravity = 0.6;
         const jumpStrength = -15;
         const quantumJumpStrength = -28;
-        let QUANTA_GOAL = 10;
+        const QUANTA_GOAL = 10;
         let keys = {}, scale = 1, scrollOffset = 0, score = 0, quantumLeapReady = false, gameState = 'start';
 
         const player = { x: 100, y: 250, width: 40, height: 40, speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
-        const platforms = [];
+        const platforms = [
+            { x: 0, y: GAME_HEIGHT - 40, width: 400, height: 40 }, { x: 500, y: GAME_HEIGHT - 100, width: 200, height: 20 },
+            { x: 800, y: GAME_HEIGHT - 180, width: 200, height: 20 }, { x: 1150, y: GAME_HEIGHT - 250, width: 150, height: 20 },
+            { x: 1500, y: GAME_HEIGHT - 150, width: 300, height: 20 }, { x: 1900, y: GAME_HEIGHT - 250, width: 150, height: 20 },
+            { x: 2200, y: GAME_HEIGHT - 400, width: 100, height: 20, goal: true }
+        ];
         const quanta = [];
         const electrons = [];
         let electronTimer = 0;
-        let electronInterval = 120; // Spawn un elettrone ogni 2 secondi (60fps)
+        let electronInterval = 120;
 
         const touchControls = {
             left: { x: 50, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowLeft' },
@@ -90,7 +95,6 @@
         function spawnElectron() {
             const y = Math.random() * GAME_HEIGHT;
             const speed = 2 + Math.random() * 2;
-            // Spawn electrons relative to the world, not the screen
             if (Math.random() > 0.5) {
                 electrons.push({ x: scrollOffset - 20, y: y, width: 10, height: 10, speed: speed });
             } else {
@@ -105,48 +109,38 @@
                 electronTimer = 0;
             }
             electrons.forEach((e, index) => {
-                // Elettroni si muovono nello spazio del mondo, ma non sono legati alla camera
-                // La loro velocità è assoluta
-
-                // Per farli muovere con lo scenario, dovremmo aggiornare la loro x in base allo scroll
-                // Ma per l'effetto "meteorite" è meglio che si muovano indipendentemente.
-                // La loro collisione deve essere controllata in coordinate del mondo.
                 e.x += e.speed;
-
-                // Rimuovi se fuori dal mondo visibile + un buffer
                 if (e.x < scrollOffset - 50 || e.x > scrollOffset + GAME_WIDTH + 50) {
                     electrons.splice(index, 1);
                 }
-
-                // Collisione con il giocatore (in coordinate del mondo)
-                if (player.x < e.x + e.width && player.x + player.width > e.x && player.y < e.y + e.height && player.y + player.height > e.y) {
+                const playerScreenX = player.x - scrollOffset;
+                if (e.x < playerScreenX + player.width && e.x + e.width > playerScreenX && e.y < player.y + player.height && e.y + e.height > player.y) {
                     resetLevel();
                 }
             });
         }
 
-        function setupLevel() {
-            platforms.length = 0; quanta.length = 0; const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2; const orbitXRadius = 1000; const orbitYRadius = 180; const numPlatforms = 15; QUANTA_GOAL = numPlatforms - 1;
-            for (let i = 0; i < numPlatforms; i++) { const angle = (i / numPlatforms) * Math.PI * 2; const x = nucleusX + Math.cos(angle) * orbitXRadius; const y = nucleusY + Math.sin(angle) * orbitYRadius; platforms.push({ x: x, y: y, width: 150, height: 20 }); if (i > 0) quanta.push({ x: x + 60, y: y - 40, width: 15, height: 15, active: true }); }
-            platforms.push({ x: nucleusX, y: nucleusY - orbitYRadius - 100, width: 100, height: 20, goal: true });
+        function setupQuanta() {
+            quanta.length = 0;
+            const quantaPositions = [ { x: 350, y: GAME_HEIGHT - 80 }, { x: 550, y: GAME_HEIGHT - 140 }, { x: 650, y: GAME_HEIGHT - 140 }, { x: 850, y: GAME_HEIGHT - 220 }, { x: 950, y: GAME_HEIGHT - 220 }, { x: 1200, y: GAME_HEIGHT - 300 }, { x: 1550, y: GAME_HEIGHT - 190 }, { x: 1650, y: GAME_HEIGHT - 190 }, { x: 1950, y: GAME_HEIGHT - 290 }, { x: 2000, y: GAME_HEIGHT - 290 } ];
+            quantaPositions.forEach(pos => quanta.push({ x: pos.x, y: pos.y, width: 15, height: 15, active: true }));
         }
-
         function resetLevel() {
-            if (isAudioEnabled && !audioInitialized) initAudio(); else if(isAudioEnabled) playMusic();
-            setupLevel();
-            player.x = platforms[0].x + 50; player.y = platforms[0].y - 50; player.velocityY = 0; player.isJumping = true;
+            if (isAudioEnabled && !audioInitialized) initAudio();
+            player.x = 100; player.y = 250; player.velocityY = 0; player.isJumping = true;
             scrollOffset = 0; score = 0; quantumLeapReady = false; electrons.length = 0; electronTimer = 0;
+            setupQuanta();
             gameState = 'playing';
         }
 
-        function drawAtomBackground() {
-            ctx.fillStyle = '#101020'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.ellipse(nucleusX - scrollOffset, nucleusY, 1000, 180, 0, 0, 2 * Math.PI); ctx.stroke();
-            ctx.fillStyle = 'red'; ctx.shadowColor = 'red'; ctx.shadowBlur = 20;
-            ctx.beginPath(); ctx.arc(nucleusX - scrollOffset, nucleusY, 30, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+        const stars = [];
+        function setupStars() {
+            for (let i = 0; i < 300; i++) { stars.push({ x: Math.random() * (platforms[platforms.length - 1].x + platforms[platforms.length - 1].width), y: Math.random() * GAME_HEIGHT, radius: Math.random() * 1.5 }); }
+        }
+        function drawBackground() {
+            ctx.fillStyle = '#00001a'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillStyle = 'white';
+            stars.forEach(star => { const starX = star.x - scrollOffset; if (starX > 0 && starX < GAME_WIDTH) { ctx.beginPath(); ctx.arc(starX, star.y, star.radius, 0, Math.PI * 2); ctx.fill(); } });
         }
         function drawPlayer() { const p = player; ctx.save(); ctx.translate(p.x - scrollOffset, p.y); const progress = Math.min(score / QUANTA_GOAL, 1); const r = Math.floor(51 + (51 - 51) * progress); const g = Math.floor(204 + (255 - 204) * progress); const b = Math.floor(204 + (51 - 204) * progress); const currentColor = `rgb(${r}, ${g}, ${b})`; ctx.shadowColor = quantumLeapReady ? 'gold' : currentColor; ctx.shadowBlur = 15; ctx.fillStyle = currentColor; ctx.beginPath(); ctx.arc(p.width / 2, p.height / 2, p.width / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(p.width / 3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(p.width * 2/3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
         function drawPlatforms() { platforms.forEach(p => { ctx.fillStyle = p.goal ? 'gold' : '#2c5b1b'; ctx.fillRect(p.x - scrollOffset, p.y, p.width, p.height); }); }
@@ -163,12 +157,12 @@
             if (gameState === 'playing') update();
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             if (gameState === 'playing') {
-                drawAtomBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
+                drawBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
                 drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
             } else if (gameState === 'start') {
                 drawStartScreen();
             } else if (gameState === 'complete') {
-                drawAtomBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
+                drawBackground(); drawPlatforms(); drawQuanta(); drawPlayer(); drawElectrons();
                 drawUI(); drawControls(); drawFullscreenButton(); drawAudioButton();
                 drawCompleteScreen();
             }
@@ -180,7 +174,8 @@
         function resize() { const ratio = GAME_WIDTH / GAME_HEIGHT; let newWidth = window.innerWidth; let newHeight = window.innerHeight; let newRatio = newWidth / newHeight; if (newRatio > ratio) newWidth = newHeight * ratio; else newHeight = newWidth / ratio; displayCanvas.style.width = newWidth + 'px'; displayCanvas.style.height = newHeight + 'px'; displayCanvas.width = newWidth; displayCanvas.height = newHeight; scale = newWidth / GAME_WIDTH; }
 
         window.addEventListener('resize', resize, false);
-        setupLevel();
+        setupQuanta();
+        setupStars();
         resize();
         gameLoop();
     </script>
