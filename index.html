@@ -28,6 +28,11 @@
             border: 3px solid #000;
             background-color: #fff;
             display: block;
+            /* Stili per la responsività */
+            width: 100%;
+            max-width: 800px; /* Non superare la risoluzione nativa */
+            aspect-ratio: 800 / 400;
+            object-fit: contain;
             margin: 10px auto;
         }
     </style>
@@ -223,7 +228,7 @@
             ctx.fillText("Aiuta Quarky a raccogliere i pacchetti di energia (i quanti).", canvas.width / 2, canvas.height / 2);
             ctx.fillText("Raccoglili tutti per fare un Salto Quantico!", canvas.width / 2, canvas.height / 2 + 30);
             ctx.font = '24px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText("Premi Invio per iniziare", canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillText("Tocca un pulsante o premi un tasto per iniziare", canvas.width / 2, canvas.height / 2 + 80);
         }
 
         function drawCompleteScreen() {
@@ -241,7 +246,7 @@
             ctx.fillText("in 'pacchetti' (i quanti) per saltare più in alto!", canvas.width / 2, canvas.height / 2 + 30);
             ctx.fillStyle = 'white';
             ctx.font = '22px "Comic Sans MS", "Chalkboard SE", sans-serif';
-            ctx.fillText('Premi Invio per rigiocare', canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillText('Tocca un pulsante o premi un tasto per rigiocare', canvas.width / 2, canvas.height / 2 + 80);
         }
 
         // Funzione per aggiornare lo stato del gioco
@@ -320,7 +325,8 @@
             switch (gameState) {
                 case 'start':
                     drawStartScreen();
-                    if (keys['Enter']) {
+            // Inizia il gioco con qualsiasi tasto di controllo o Invio
+            if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
                         resetLevel();
                     }
                     break;
@@ -335,8 +341,10 @@
                     break;
                 case 'complete':
                     drawCompleteScreen();
-                    if (keys['Enter']) {
-                        resetLevel();
+             // Riavvia il gioco con qualsiasi tasto di controllo o Invio
+            if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
+                // Aggiungiamo un piccolo ritardo per evitare riavvii istantanei
+                setTimeout(resetLevel, 200);
                     }
                     break;
             }
