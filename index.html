@@ -157,8 +157,9 @@
             if (audioInitialized && audio[sound]) {
                 audio[sound].currentTime = 0;
                 audio[sound].play().catch(err => {
-                    // Non fare nulla se c'è un errore (es. file non trovato), il gioco continua
-                    console.log("Impossibile riprodurre il suono:", err);
+                    if (window.console && console.log) {
+                        console.log(`Impossibile riprodurre il suono '${sound}':`, err);
+                    }
                 });
             }
         }
@@ -166,7 +167,9 @@
         function playMusic() {
             if (audioInitialized && audio.music) {
                 audio.music.play().catch(err => {
-                    console.log("Impossibile riprodurre la musica:", err);
+                    if (window.console && console.log) {
+                        console.log("Impossibile riprodurre la musica:", err);
+                    }
                 });
             }
         }
