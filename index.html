@@ -12,6 +12,7 @@
 <body>
     <canvas id="displayCanvas"></canvas>
     <script>
+        // --- IMPOSTAZIONE ---
         const displayCanvas = document.getElementById('displayCanvas');
         const displayCtx = displayCanvas.getContext('2d');
         const gameCanvas = document.createElement('canvas');
@@ -21,18 +22,19 @@
         gameCanvas.height = GAME_HEIGHT;
         const ctx = gameCanvas.getContext('2d');
 
+        // --- VARIABILI DI GIOCO ---
         const gravity = 0.6;
         const jumpStrength = -15;
         const quantumJumpStrength = -28;
-        let QUANTA_GOAL = 14;
+        let QUANTA_GOAL = 10;
         let keys = {}, scale = 1, scrollOffset = 0, score = 0, quantumLeapReady = false, gameState = 'start';
 
-        const player = { x: 0, y: 0, width: 40, height: 40, speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
+        const player = { x: 100, y: 250, width: 40, height: 40, speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
         const platforms = [];
         const quanta = [];
         const electrons = [];
         let electronTimer = 0;
-        let electronInterval = 120;
+        let electronInterval = 120; // Spawn un elettrone ogni 2 secondi (60fps)
 
         const touchControls = {
             left: { x: 50, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'ArrowLeft' },
@@ -47,6 +49,7 @@
         let isAudioEnabled = false, audio = {}, audioInitialized = false;
         const audioSources = { music: "", jump: "", collect: "" };
 
+        // --- CONTROLLI & LOGICA DI GIOCO ---
         window.addEventListener('keydown', e => { keys[e.code] = true; if ((gameState === 'start' || gameState === 'complete') && (e.code === 'Enter' || e.code === 'Space')) resetLevel(); });
         window.addEventListener('keyup', e => { keys[e.code] = false; });
         function getTouchPos(touch) { const rect = displayCanvas.getBoundingClientRect(); return { x: (touch.clientX - rect.left) / scale, y: (touch.clientY - rect.top) / scale }; }
@@ -77,18 +80,48 @@
             player.y += player.velocityY; player.velocityY += gravity;
             platforms.forEach(p => { if (player.x + player.width > p.x && player.x < p.x + p.width && player.y + player.height >= p.y && player.y + player.height <= p.y + player.velocityY && player.velocityY >= 0) { player.y = p.y - player.height; player.velocityY = 0; player.isJumping = false; if (p.goal) gameState = 'complete'; } });
             quanta.forEach(q => { if (q.active && player.x < q.x + q.width && player.x + player.width > q.x && player.y < q.y + q.height && player.y + player.height > q.y) { q.active = false; score++; playSound('collect'); if (score >= QUANTA_GOAL) quantumLeapReady = true; } });
+
             updateElectrons();
+
             if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) { player.isJumping = true; playSound('jump'); player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength; if (quantumLeapReady) quantumLeapReady = false; }
             if (player.y > GAME_HEIGHT) resetLevel();
         }
 
-        function spawnElectron() { const y = Math.random() * GAME_HEIGHT; const speed = 2 + Math.random() * 2; if (Math.random() > 0.5) electrons.push({ x: scrollOffset - 10, y: y, width: 10, height: 10, speed: speed }); else electrons.push({ x: scrollOffset + GAME_WIDTH + 10, y: y, width: 10, height: 10, speed: -speed }); }
+        function spawnElectron() {
+            const y = Math.random() * GAME_HEIGHT;
+            const speed = 2 + Math.random() * 2;
+            // Spawn electrons relative to the world, not the screen
+            if (Math.random() > 0.5) {
+                electrons.push({ x: scrollOffset - 20, y: y, width: 10, height: 10, speed: speed });
+            } else {
+                electrons.push({ x: scrollOffset + GAME_WIDTH + 20, y: y, width: 10, height: 10, speed: -speed });
+            }
+        }
+
         function updateElectrons() {
-            electronTimer++; if (electronTimer > electronInterval) { spawnElectron(); electronTimer = 0; }
+            electronTimer++;
+            if (electronTimer > electronInterval) {
+                spawnElectron();
+                electronTimer = 0;
+            }
             electrons.forEach((e, index) => {
+                // Elettroni si muovono nello spazio del mondo, ma non sono legati alla camera
+                // La loro velocità è assoluta
+
+                // Per farli muovere con lo scenario, dovremmo aggiornare la loro x in base allo scroll
+                // Ma per l'effetto "meteorite" è meglio che si muovano indipendentemente.
+                // La loro collisione deve essere controllata in coordinate del mondo.
                 e.x += e.speed;
-                if (e.x < scrollOffset - 20 || e.x > scrollOffset + GAME_WIDTH + 20) electrons.splice(index, 1);
-                if (player.x < e.x + e.width && player.x + player.width > e.x && player.y < e.y + e.height && player.y + player.height > e.y) resetLevel();
+
+                // Rimuovi se fuori dal mondo visibile + un buffer
+                if (e.x < scrollOffset - 50 || e.x > scrollOffset + GAME_WIDTH + 50) {
+                    electrons.splice(index, 1);
+                }
+
+                // Collisione con il giocatore (in coordinate del mondo)
+                if (player.x < e.x + e.width && player.x + player.width > e.x && player.y < e.y + e.height && player.y + player.height > e.y) {
+                    resetLevel();
+                }
             });
         }
 
@@ -97,9 +130,24 @@
             for (let i = 0; i < numPlatforms; i++) { const angle = (i / numPlatforms) * Math.PI * 2; const x = nucleusX + Math.cos(angle) * orbitXRadius; const y = nucleusY + Math.sin(angle) * orbitYRadius; platforms.push({ x: x, y: y, width: 150, height: 20 }); if (i > 0) quanta.push({ x: x + 60, y: y - 40, width: 15, height: 15, active: true }); }
             platforms.push({ x: nucleusX, y: nucleusY - orbitYRadius - 100, width: 100, height: 20, goal: true });
         }
-        function resetLevel() { if (isAudioEnabled && !audioInitialized) initAudio(); else if (isAudioEnabled) playMusic(); setupLevel(); player.x = platforms[0].x + 50; player.y = platforms[0].y - 50; player.velocityY = 0; player.isJumping = true; scrollOffset = 0; score = 0; quantumLeapReady = false; electrons.length = 0; electronTimer = 0; gameState = 'playing'; }
 
-        function drawAtomBackground() { ctx.fillStyle = '#101020'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(nucleusX - scrollOffset, nucleusY, 1000, 180, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillStyle = 'red'; ctx.shadowColor = 'red'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(nucleusX - scrollOffset, nucleusY, 30, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+        function resetLevel() {
+            if (isAudioEnabled && !audioInitialized) initAudio(); else if(isAudioEnabled) playMusic();
+            setupLevel();
+            player.x = platforms[0].x + 50; player.y = platforms[0].y - 50; player.velocityY = 0; player.isJumping = true;
+            scrollOffset = 0; score = 0; quantumLeapReady = false; electrons.length = 0; electronTimer = 0;
+            gameState = 'playing';
+        }
+
+        function drawAtomBackground() {
+            ctx.fillStyle = '#101020'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            const nucleusX = 1200; const nucleusY = GAME_HEIGHT / 2;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(nucleusX - scrollOffset, nucleusY, 1000, 180, 0, 0, 2 * Math.PI); ctx.stroke();
+            ctx.fillStyle = 'red'; ctx.shadowColor = 'red'; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(nucleusX - scrollOffset, nucleusY, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
         function drawPlayer() { const p = player; ctx.save(); ctx.translate(p.x - scrollOffset, p.y); const progress = Math.min(score / QUANTA_GOAL, 1); const r = Math.floor(51 + (51 - 51) * progress); const g = Math.floor(204 + (255 - 204) * progress); const b = Math.floor(204 + (51 - 204) * progress); const currentColor = `rgb(${r}, ${g}, ${b})`; ctx.shadowColor = quantumLeapReady ? 'gold' : currentColor; ctx.shadowBlur = 15; ctx.fillStyle = currentColor; ctx.beginPath(); ctx.arc(p.width / 2, p.height / 2, p.width / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(p.width / 3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(p.width * 2/3, p.height / 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
         function drawPlatforms() { platforms.forEach(p => { ctx.fillStyle = p.goal ? 'gold' : '#2c5b1b'; ctx.fillRect(p.x - scrollOffset, p.y, p.width, p.height); }); }
         function drawQuanta() { ctx.fillStyle = 'gold'; quanta.forEach(q => { if (q.active) { ctx.beginPath(); ctx.arc(q.x - scrollOffset + q.width / 2, q.y + q.height / 2, q.width / 2, 0, Math.PI * 2); ctx.fill(); } }); }
