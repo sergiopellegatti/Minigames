@@ -51,7 +51,7 @@
         let scrollOffset = 0;
         let score = 0;
         let quantumLeapReady = false;
-        let gameState = 'playing'; // Modificato per avviare subito il gioco
+        let gameState = 'start'; // Ripristinato lo stato iniziale
 
         const player = { x: 100, y: 250, width: 40, height: 40, color: 'deepskyblue', speed: 5, velocityX: 0, velocityY: 0, isJumping: true };
 
@@ -72,10 +72,17 @@
             jump: { x: GAME_WIDTH - 120, y: GAME_HEIGHT - 90, width: 70, height: 70, key: 'Space' }
         };
         const fullscreenButton = { x: GAME_WIDTH - 50, y: 10, width: 40, height: 40 };
+        const startButton = { x: GAME_WIDTH / 2 - 100, y: GAME_HEIGHT / 2 + 60, width: 200, height: 50 };
         const isFullscreenSupported = typeof document.fullscreenEnabled !== 'undefined' || typeof document.webkitFullscreenEnabled !== 'undefined';
 
         // --- CONTROLLI ---
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            // Permette di iniziare con un tasto anche dalla schermata di avvio
+            if (gameState === 'start' || gameState === 'complete') {
+                if (e.code === 'Enter' || e.code === 'Space') resetLevel();
+            }
+        });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
         function getTouchPos(touch) {
@@ -98,14 +105,28 @@
             }
         }
 
+        function handleTap(e) {
+            const touch = e.changedTouches[0];
+            if (!touch) return;
+            const pos = getTouchPos(touch);
+
+            if (gameState === 'start' && isInside(pos, startButton)) {
+                resetLevel();
+                return;
+            }
+            if (gameState === 'complete' && isInside(pos, startButton)) { // Riutilizziamo il 'pulsante' di start
+                resetLevel();
+                return;
+            }
+            if (isFullscreenSupported && isInside(pos, fullscreenButton)) {
+                toggleFullscreen();
+            }
+        }
+
         displayCanvas.addEventListener('touchstart', handleTouches, { passive: false });
         displayCanvas.addEventListener('touchmove', handleTouches, { passive: false });
         displayCanvas.addEventListener('touchend', function(e) {
-            const touch = e.changedTouches[0];
-            if (touch) {
-                const pos = getTouchPos(touch);
-                if (isFullscreenSupported && isInside(pos, fullscreenButton)) toggleFullscreen();
-            }
+            handleTap(e);
             handleTouches(e);
         }, { passive: false });
 
@@ -180,11 +201,60 @@
         }
 
         // --- FUNZIONI DI DISEGNO ---
+        const stars = [];
+        function setupStars() {
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * GAME_WIDTH,
+                    y: Math.random() * GAME_HEIGHT,
+                    radius: Math.random() * 1.5,
+                    parallax: 0.1 + Math.random() * 0.4 // Lentezza diversa per la parallasse
+                });
+            }
+        }
+
+        function drawBackground() {
+            // Sfondo nero spaziale
+            ctx.fillStyle = '#00001a';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // Disegna le stelle
+            ctx.fillStyle = 'white';
+            stars.forEach(star => {
+                const x = (star.x - scrollOffset * star.parallax) % GAME_WIDTH;
+                const y = star.y;
+                if (x < 0) x += GAME_WIDTH; // Gestisce il wrap around
+                ctx.beginPath();
+                ctx.arc(x, y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
         function drawPlayer() {
-            ctx.fillStyle = player.color;
-            if (quantumLeapReady) { ctx.shadowBlur = 20; ctx.shadowColor = "gold"; }
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-            ctx.shadowBlur = 0;
+            const p = player;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+
+            // Bagliore luminoso
+            ctx.shadowColor = quantumLeapReady ? 'gold' : '#33ff33';
+            ctx.shadowBlur = 15;
+
+            // Corpo dell'alieno
+            ctx.fillStyle = '#33cc33'; // Verde alieno
+            ctx.beginPath();
+            ctx.arc(p.width / 2, p.height / 2, p.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Occhi
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(p.width / 3, p.height / 3, 3, 0, Math.PI * 2); // Occhio sinistro
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(p.width * 2/3, p.height / 3, 3, 0, Math.PI * 2); // Occhio destro
+            ctx.fill();
+
+            ctx.restore(); // Rimuove ombra e traslazione
         }
 
         function drawPlatforms() {
@@ -231,6 +301,32 @@
             ctx.stroke();
         }
 
+        function drawStartScreen() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+
+            ctx.font = '36px "Comic Sans MS"';
+            ctx.fillText('Quantum Leap', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 150);
+
+            ctx.font = '20px "Comic Sans MS"';
+            ctx.fillText("Nel mondo quantistico, l'energia non è continua.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
+            ctx.fillText("Esiste in pacchetti discreti, chiamati 'quanti'.", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50);
+
+            ctx.fillStyle = 'gold';
+            ctx.fillText("La tua missione: raccogli abbastanza quanti di energia...", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 10);
+            ctx.fillText("...per compiere un 'Salto Quantico'!", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20);
+
+            // Disegna il pulsante di avvio
+            const btn = startButton;
+            ctx.fillStyle = '#2c5b1b';
+            ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 28px "Comic Sans MS"';
+            ctx.fillText("Inizia!", btn.x + btn.width / 2, btn.y + btn.height / 2 + 5);
+        }
+
         function drawControls() {
             ctx.globalAlpha = 0.5;
             for (const key in touchControls) {
@@ -266,18 +362,19 @@
         function gameLoop() {
             if (gameState === 'playing') {
                 update();
-            } else if (gameState === 'complete') {
-                if (keys['Enter'] || keys['Space'] || keys['ArrowLeft'] || keys['ArrowRight']) {
-                    setTimeout(resetLevel, 200);
-                }
             }
 
             // Disegna sul canvas interno
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             if (gameState === 'playing') {
+                drawBackground(); // Disegna il nuovo sfondo
+                drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
+            } else if (gameState === 'start') {
+                drawStartScreen();
+            } else if (gameState === 'complete') {
+                // Ridisegna l'ultima schermata di gioco e sovrappone la schermata di completamento
                 ctx.fillStyle = '#d0e7f9'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
                 drawPlatforms(); drawQuanta(); drawPlayer(); drawUI(); drawControls(); drawFullscreenButton();
-            } else if (gameState === 'complete') {
                 drawCompleteScreen();
             }
 
@@ -306,7 +403,8 @@
 
         // --- AVVIO ---
         window.addEventListener('resize', resize, false);
-        resetLevel(); // Inizializza e avvia il gioco
+        setupQuanta();
+        setupStars(); // Inizializza le stelle
         resize();
         gameLoop();
     </script>
