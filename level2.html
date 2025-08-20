@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Quanti e la Missione dell’Invisibile</title>
+    <style>
+        body {
+            background-color: #000;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Load all game modules -->
+    <script src="js/audio.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/engine.js"></script>
+
+    <!-- Start the game -->
+    <script>
+        window.addEventListener('load', () => {
+            // Initialize the engine with the canvas ID and the path to the level data
+            Engine.init('gameCanvas', 'data/level2.json');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+    "title": "Quanti e la Missione dell’Invisibile - Livello 2",
+    "player": {
+        "width": 40,
+        "height": 40,
+        "speed": 5,
+        "style": "quanti"
+    },
+    "physics": {
+        "gravity": 0.6,
+        "jumpStrength": -15,
+        "quantumJumpStrength": -28
+    },
+    "background": {
+        "type": "atomic",
+        "color": "#101020"
+    },
+    "platforms": {
+        "count": 10,
+        "initialX": 200,
+        "gap": [300, 400],
+        "yRange": [150, 300],
+        "widthRange": [80, 130],
+        "goalPlatform": {
+            "y": 300,
+            "width": 100,
+            "height": 100
+        }
+    },
+    "enemies": {
+        "type": "electrons",
+        "interval": 120,
+        "speedRange": [2, 4]
+    },
+    "quanta": {
+        "offsetY": -40,
+        "width": 15,
+        "height": 15
+    },
+    "ui": {
+        "startScreen": {
+            "title": "Quanti e la Missione dell’Invisibile",
+            "subtitle1": "Il malvagio Dr. Clàsikon vuole rendere l'universo noioso e prevedibile!",
+            "subtitle2": "Aiuta Quanti, il fotone con il jetpack, a salvare il Regno dell'Invisibile!",
+            "levelTitle": "Livello 2: Caos Atomico",
+            "instructions": "Schiva le meteoriti di elettroni e salta tra gli atomi!",
+            "buttonText": "Inizia la Missione!"
+        },
+        "completeScreen": {
+            "title": "Livello Superato!",
+            "subtitle": "Hai navigato il caos atomico!",
+            "message1": "L'universo è salvo, per ora...",
+            "message2": "La tua abilità nel salto quantico è impressionante!",
+            "buttonText": "Tocca un pulsante o premi un tasto per rigiocare"
+        }
+    }
+}
