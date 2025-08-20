@@ -90,22 +90,8 @@ const Engine = {
 
     // --- Game Loop ---
     gameLoop: function(timestamp) {
-        if (this.state.gameState === 'playing') {
-            Physics.update(this.state, this.levelData);
-        }
-
-        Renderer.draw(this.displayCtx, this.gameCtx, this.state, this.levelData);
-
-        // Handle post-update logic
-        this.state.pendingSounds.forEach(sound => AudioSystem.playSound(sound));
-        this.state.pendingSounds = [];
-
-        if (this.state.shouldReset) {
-            this.resetLevel();
-            this.state.shouldReset = false;
-        }
-
-        requestAnimationFrame((t) => this.gameLoop(t));
+        logDebug('GAME LOOP EXECUTED! Timestamp: ' + timestamp);
+        // All other logic is removed for this test.
     },
 
     // --- Level Management ---
