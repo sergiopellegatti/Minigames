@@ -1,3 +1,5 @@
+logDebug('js/physics.js loaded.');
+
 const Physics = {
     update: function(state, level) {
         const { player, platforms, quanta, electrons, keys, quantumLeapReady } = state;

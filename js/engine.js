@@ -1,3 +1,5 @@
+logDebug('js/engine.js loaded.');
+
 const Engine = {
     // --- Game State ---
     state: {},
@@ -13,13 +15,24 @@ const Engine = {
 
     // --- Initialization ---
     init: function(canvasId, levelData) {
+        logDebug('Engine.init started.');
         // --- Canvas Setup ---
         this.displayCanvas = document.getElementById(canvasId);
+        if (!this.displayCanvas) {
+            logDebug('FATAL: Display canvas not found.');
+            return;
+        }
         this.displayCtx = this.displayCanvas.getContext('2d');
         this.gameCanvas = document.createElement('canvas');
+        logDebug('Canvas setup complete.');
 
         // --- Load Level Data ---
         this.levelData = levelData;
+        if (!this.levelData) {
+            logDebug('FATAL: Level data not provided.');
+            return;
+        }
+        logDebug('Level data loaded.');
 
         // --- Initialize State ---
         this.state = {
@@ -53,9 +66,10 @@ const Engine = {
         this.gameCanvas.width = this.state.gameWidth;
         this.gameCanvas.height = this.state.gameHeight;
         this.gameCtx = this.gameCanvas.getContext('2d');
+        logDebug('State initialized.');
 
         // --- Initialize Modules ---
-        Controls.initialize(this.displayCanvas, this.state.touchControls, {
+        Controls.initialize(this.displayCanvas, this.state, {
             onAction: (code) => this.handleAction(code),
             onTap: (pos) => this.handleTap(pos)
         });
@@ -65,8 +79,12 @@ const Engine = {
 
         // --- Setup Level & Start ---
         this.resetLevel();
+        logDebug('Level reset for the first time.');
         this.resize();
+        logDebug('Initial resize complete.');
         window.addEventListener('resize', () => this.resize());
+
+        logDebug('Starting game loop...');
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     },
 

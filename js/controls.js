@@ -1,3 +1,5 @@
+logDebug('js/controls.js loaded.');
+
 // --- STATE ---
 let keys = {};
 
@@ -18,22 +20,24 @@ function isInside(pos, button, scale) {
 }
 
 // --- EVENT HANDLERS ---
+// Note: handleKeyDown and handleKeyUp are not used by the new initialize function,
+// but are kept here in case they are useful later.
 function handleKeyDown(e) {
     keys[e.code] = true;
-    // We might need to pass a callback for game state changes
 }
 
 function handleKeyUp(e) {
     keys[e.code] = false;
 }
 
-function handleTouches(e, canvas, touchControls) {
+function handleTouches(e, canvas, state) {
     e.preventDefault();
+    const touchControls = state.touchControls;
     Object.keys(touchControls).forEach(k => keys[touchControls[k].key] = false);
     for (let i = 0; i < e.touches.length; i++) {
         const pos = getTouchPos(canvas, e.touches[i]);
         for (const key in touchControls) {
-            if (isInside(pos, touchControls[key], Engine.scale)) {
+            if (isInside(pos, touchControls[key], state.scale)) {
                 keys[touchControls[key].key] = true;
             }
         }
@@ -41,13 +45,12 @@ function handleTouches(e, canvas, touchControls) {
 }
 
 // --- PUBLIC API ---
-// This will be simplified. The engine will handle the logic.
-// For now, we just expose a way to get the state of the keys.
 const Controls = {
     keys: keys,
 
     // The engine will call this to set up the listeners
-    initialize: function(canvas, touchControls, callbacks) {
+    initialize: function(canvas, state, callbacks) {
+        logDebug('Controls.initialize called.');
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
             if (callbacks.onAction) callbacks.onAction(e.code);
@@ -56,15 +59,10 @@ const Controls = {
             keys[e.code] = false;
         });
 
-        canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            handleTouches(e, canvas, touchControls);
-        }, { passive: false });
+        const touchHandler = (e) => handleTouches(e, canvas, state);
 
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            handleTouches(e, canvas, touchControls);
-        }, { passive: false });
+        canvas.addEventListener('touchstart', touchHandler, { passive: false });
+        canvas.addEventListener('touchmove', touchHandler, { passive: false });
 
         canvas.addEventListener('touchend', e => {
             e.preventDefault();
@@ -75,7 +73,7 @@ const Controls = {
                 callbacks.onTap(pos);
             }
             // Reset keys
-            Object.keys(touchControls).forEach(k => keys[touchControls[k].key] = false);
+            Object.keys(state.touchControls).forEach(k => keys[state.touchControls[k].key] = false);
         }, { passive: false });
 
         canvas.addEventListener('click', e => {
@@ -84,5 +82,6 @@ const Controls = {
                 callbacks.onTap(clickPos);
             }
         });
+        logDebug('Controls initialized.');
     }
 };

@@ -23,9 +23,23 @@
             image-rendering: crisp-edges;
             image-rendering: pixelated;
         }
+        #debug-output {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: #0f0;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #0f0;
+            z-index: 100;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
+    <div id="debug-output">Debug Output:<br></div>
     <canvas id="gameCanvas"></canvas>
 
     <!-- Load all game modules -->

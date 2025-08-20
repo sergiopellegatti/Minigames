@@ -1,3 +1,5 @@
+logDebug('js/audio.js loaded.');
+
 const AudioSystem = {
     isAudioEnabled: false,
     audioInitialized: false,
@@ -15,10 +17,11 @@ const AudioSystem = {
     // Load all audio files specified in the level data
     load: async function(sources) {
         if (!window.AudioContext) {
-            console.warn("Web Audio API is not supported in this browser.");
+            logDebug("Web Audio API not supported.");
             return;
         }
         this.audioContext = new AudioContext();
+        logDebug("AudioContext created.");
 
         const promises = [];
         for (const key in sources) {
@@ -30,12 +33,13 @@ const AudioSystem = {
                         .then(audioBuffer => {
                             this.buffers[key] = audioBuffer;
                         })
-                        .catch(e => console.error(`Error loading audio source ${key}:`, e))
+                        .catch(e => logDebug(`Error loading audio ${key}`))
                 );
             }
         }
         await Promise.all(promises);
         this.audioInitialized = true;
+        logDebug("Audio loaded.");
     },
 
     playSound: function(sound) {

@@ -1,3 +1,5 @@
+logDebug('js/renderer.js loaded.');
+
 const Renderer = {
     // Main drawing function, orchestrates all other drawing
     draw: function(dCtx, gCtx, state, level) {
