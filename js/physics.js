@@ -13,6 +13,14 @@ const Physics = {
         }
         player.x += player.velocityX;
 
+        // --- Scrolling Camera Logic ---
+        const worldWidth = platforms.length > 0 ? platforms[platforms.length - 1].x + platforms[platforms.length - 1].width : state.gameWidth;
+        state.scrollOffset = player.x - state.gameWidth / 2;
+        if (state.scrollOffset < 0) state.scrollOffset = 0;
+        if (state.scrollOffset > worldWidth - state.gameWidth) {
+            state.scrollOffset = worldWidth - state.gameWidth;
+        }
+
         // --- Player Vertical Movement & Gravity ---
         player.y += player.velocityY;
         player.velocityY += gravity;

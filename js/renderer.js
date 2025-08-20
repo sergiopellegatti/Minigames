@@ -89,7 +89,7 @@ const Renderer = {
         ctx.translate(player.x - scrollOffset, player.y);
 
         if (style === 'quanti') {
-            const scaleFactor = 1.25;
+            const scaleFactor = level.player.scaleFactor || 1;
             ctx.translate(player.width / 2, player.height / 2);
             ctx.scale(scaleFactor, scaleFactor);
             ctx.translate(-player.width / 2, -player.height / 2);

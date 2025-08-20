@@ -159,18 +159,34 @@ const Engine = {
 
     // --- Event Handlers ---
     handleAction: function(code) {
-        if ((this.state.gameState === 'start' || this.state.gameState === 'complete') && (code === 'Enter' || code === 'Space')) {
+        if (this.state.gameState === 'start' && (code === 'Enter' || code === 'Space')) {
             this.resetLevel();
+        } else if (this.state.gameState === 'complete' && (code === 'Enter' || code === 'Space')) {
+            if (this.levelData.nextLevel) {
+                window.location.href = this.levelData.nextLevel;
+            } else {
+                this.resetLevel();
+            }
         }
     },
 
     handleTap: function(pos) {
         const { gameState, startButton, fullscreenButton, audioToggleButton, scale } = this.state;
 
-        if ((gameState === 'start' || gameState === 'complete') && isInside(pos, startButton, scale)) {
+        if (gameState === 'start' && isInside(pos, startButton, scale)) {
             this.resetLevel();
             return;
         }
+
+        if (gameState === 'complete' && isInside(pos, startButton, scale)) {
+            if (this.levelData.nextLevel) {
+                window.location.href = this.levelData.nextLevel;
+            } else {
+                this.resetLevel();
+            }
+            return;
+        }
+
         if (this.state.isFullscreenSupported && isInside(pos, fullscreenButton, scale)) {
             this.toggleFullscreen();
             return;

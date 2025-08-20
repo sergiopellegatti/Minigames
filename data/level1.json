@@ -1,5 +1,6 @@
 {
     "title": "Quanti e la Missione dell’Invisibile - Livello 1",
+    "nextLevel": "level2.html",
     "player": {
         "width": 30,
         "height": 30,
@@ -47,7 +48,7 @@
             "subtitle": "Hai imparato a controllare l'energia quantica!",
             "message1": "Ora sei pronto per sfide più grandi.",
             "message2": "Il Regno dell'Invisibile conta su di te!",
-            "buttonText": "Tocca un pulsante o premi un tasto per rigiocare"
+            "buttonText": "Vai al Livello 2"
         }
     }
 }

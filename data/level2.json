@@ -4,7 +4,8 @@
         "width": 40,
         "height": 40,
         "speed": 5,
-        "style": "quanti"
+        "style": "quanti",
+        "scaleFactor": 1.25
     },
     "physics": {
         "gravity": 0.6,
@@ -48,10 +49,10 @@
         },
         "completeScreen": {
             "title": "Livello Superato!",
-            "subtitle": "Hai navigato il caos atomico!",
-            "message1": "L'universo è salvo, per ora...",
-            "message2": "La tua abilità nel salto quantico è impressionante!",
-            "buttonText": "Tocca un pulsante o premi un tasto per rigiocare"
+            "subtitle": "Hai compiuto un altro Salto Quantico!",
+            "message1": "Proprio come hai saltato da un atomo all'altro, un elettrone può 'saltare' da un'orbita all'altra assorbendo energia.",
+            "message2": "Non può esistere a metà strada! Questo è uno dei misteri fondamentali del mondo quantico. Missione compiuta!",
+            "buttonText": "Hai completato il gioco! Rigioca"
         }
     }
 }
