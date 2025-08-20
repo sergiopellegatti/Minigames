@@ -12,20 +12,14 @@ const Engine = {
     levelData: null,
 
     // --- Initialization ---
-    init: async function(canvasId, levelUrl) {
+    init: function(canvasId, levelData) {
         // --- Canvas Setup ---
         this.displayCanvas = document.getElementById(canvasId);
         this.displayCtx = this.displayCanvas.getContext('2d');
         this.gameCanvas = document.createElement('canvas');
 
         // --- Load Level Data ---
-        try {
-            const response = await fetch(levelUrl);
-            this.levelData = await response.json();
-        } catch (error) {
-            console.error("Failed to load level data:", error);
-            return;
-        }
+        this.levelData = levelData;
 
         // --- Initialize State ---
         this.state = {

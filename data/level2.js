@@ -1,4 +1,4 @@
-{
+const level2Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 2",
     "player": {
         "width": 40,
@@ -55,4 +55,4 @@
             "buttonText": "Hai completato il gioco! Rigioca"
         }
     }
-}
+};

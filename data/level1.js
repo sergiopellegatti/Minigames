@@ -1,4 +1,4 @@
-{
+const level1Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 1",
     "nextLevel": "level2.html",
     "player": {
@@ -51,4 +51,4 @@
             "buttonText": "Vai al Livello 2"
         }
     }
-}
+};
