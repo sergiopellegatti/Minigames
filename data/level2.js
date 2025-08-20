@@ -1,12 +1,3 @@
-function logDebug(message) {
-    const debugEl = document.getElementById('debug-output');
-    if (debugEl) {
-        debugEl.innerHTML += message + '<br>';
-    }
-}
-
-logDebug('data/level2.js loaded.');
-
 const level2Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 2",
     "player": {

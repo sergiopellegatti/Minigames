@@ -1,58 +1,31 @@
-logDebug('js/renderer.js loaded.');
-
 const Renderer = {
     // Main drawing function, orchestrates all other drawing
     draw: function(dCtx, gCtx, state, level) {
-        logDebug('Renderer.draw called. gameState: ' + state.gameState);
         const { gameState, gameWidth, gameHeight, scale } = state;
 
         // Clear and draw to the offscreen game canvas
-        logDebug('Clearing game canvas...');
         gCtx.clearRect(0, 0, gameWidth, gameHeight);
-
-        logDebug('Drawing background...');
         this.drawBackground(gCtx, state, level);
-        logDebug('...background done.');
 
         if (gameState === 'playing') {
-            logDebug('Drawing platforms...');
             this.drawPlatforms(gCtx, state, level);
-            logDebug('...platforms done.');
-
-            logDebug('Drawing quanta...');
             this.drawQuanta(gCtx, state, level);
-            logDebug('...quanta done.');
-
-            logDebug('Drawing enemies...');
             this.drawEnemies(gCtx, state, level);
-            logDebug('...enemies done.');
-
-            logDebug('Drawing player...');
             this.drawPlayer(gCtx, state, level);
-            logDebug('...player done.');
         }
 
         // Draw the game canvas to the visible display canvas
-        logDebug('Drawing game canvas to display canvas...');
         dCtx.clearRect(0, 0, dCtx.canvas.width, dCtx.canvas.height);
         dCtx.drawImage(gCtx.canvas, 0, 0, dCtx.canvas.width, dCtx.canvas.height);
-        logDebug('...draw image done.');
 
         // Draw UI elements directly on the display canvas for sharpness
         if (gameState === 'playing') {
-            logDebug('Drawing UI...');
             this.drawUI(dCtx, state, level);
-            logDebug('...UI done.');
         } else if (gameState === 'start') {
-            logDebug('Drawing start screen...');
             this.drawStartScreen(dCtx, state, level);
-            logDebug('...start screen done.');
         } else if (gameState === 'complete') {
-            logDebug('Drawing complete screen...');
             this.drawCompleteScreen(dCtx, state, level);
-            logDebug('...complete screen done.');
         }
-        logDebug('Renderer.draw finished.');
     },
 
     // --- Component Drawing Functions ---

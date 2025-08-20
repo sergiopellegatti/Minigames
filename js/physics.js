@@ -1,11 +1,7 @@
-logDebug('js/physics.js loaded.');
-
 const Physics = {
     update: function(state, level) {
-        logDebug('Physics.update started.');
         const { player, platforms, quanta, electrons, keys, quantumLeapReady } = state;
         const { gravity, jumpStrength, quantumJumpStrength } = level.physics;
-        logDebug('...deconstruction complete.');
 
         // --- Player Horizontal Movement ---
         if (keys['ArrowLeft'] || keys['KeyA']) {
@@ -16,7 +12,6 @@ const Physics = {
             player.velocityX = 0;
         }
         player.x += player.velocityX;
-        logDebug('...horizontal movement done.');
 
         // --- Scrolling Camera Logic ---
         const worldWidth = platforms.length > 0 ? platforms[platforms.length - 1].x + platforms[platforms.length - 1].width : state.gameWidth;
@@ -25,12 +20,10 @@ const Physics = {
         if (state.scrollOffset > worldWidth - state.gameWidth) {
             state.scrollOffset = worldWidth - state.gameWidth;
         }
-        logDebug('...camera logic done.');
 
         // --- Player Vertical Movement & Gravity ---
         player.y += player.velocityY;
         player.velocityY += gravity;
-        logDebug('...vertical movement done.');
 
         // --- Collision Detection: Platforms ---
         let onPlatform = false;
@@ -50,7 +43,6 @@ const Physics = {
                 }
             }
         });
-        logDebug('...platform collision done.');
 
         // --- Collision Detection: Quanta ---
         quanta.forEach(q => {
@@ -69,7 +61,6 @@ const Physics = {
                 state.pendingSounds.push('collect');
             }
         });
-        logDebug('...quanta collision done.');
 
         // --- Player Jump ---
         if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
@@ -80,18 +71,14 @@ const Physics = {
             }
             state.pendingSounds.push('jump');
         }
-        logDebug('...jump logic done.');
 
         // --- Fall off screen ---
         if (player.y > state.gameHeight) {
             state.shouldReset = true;
         }
-        logDebug('...fall logic done.');
 
         // --- Update Enemies ---
         this.updateEnemies(state, level);
-        logDebug('...enemy update done.');
-        logDebug('Physics.update finished.');
     },
 
     updateEnemies: function(state, level) {

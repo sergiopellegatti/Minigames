@@ -1,5 +1,3 @@
-logDebug('js/engine.js loaded.');
-
 const Engine = {
     // --- Game State ---
     state: {},
@@ -15,24 +13,13 @@ const Engine = {
 
     // --- Initialization ---
     init: function(canvasId, levelData) {
-        logDebug('Engine.init started.');
         // --- Canvas Setup ---
         this.displayCanvas = document.getElementById(canvasId);
-        if (!this.displayCanvas) {
-            logDebug('FATAL: Display canvas not found.');
-            return;
-        }
         this.displayCtx = this.displayCanvas.getContext('2d');
         this.gameCanvas = document.createElement('canvas');
-        logDebug('Canvas setup complete.');
 
         // --- Load Level Data ---
         this.levelData = levelData;
-        if (!this.levelData) {
-            logDebug('FATAL: Level data not provided.');
-            return;
-        }
-        logDebug('Level data loaded.');
 
         // --- Initialize State ---
         this.state = {
@@ -56,7 +43,7 @@ const Engine = {
             electronTimer: 0,
             shouldReset: false,
             pendingSounds: [],
-            // UI elements (could also be in JSON)
+            // UI elements
             touchControls: { left: { x: 50, y: 360, width: 70, height: 70, key: 'ArrowLeft' }, right: { x: 140, y: 360, width: 70, height: 70, key: 'ArrowRight' }, jump: { x: 680, y: 360, width: 70, height: 70, key: 'Space' } },
             fullscreenButton: { x: 750, y: 10, width: 40, height: 40 },
             audioToggleButton: { x: 700, y: 10, width: 40, height: 40 },
@@ -66,32 +53,42 @@ const Engine = {
         this.gameCanvas.width = this.state.gameWidth;
         this.gameCanvas.height = this.state.gameHeight;
         this.gameCtx = this.gameCanvas.getContext('2d');
-        logDebug('State initialized.');
 
         // --- Initialize Modules ---
         Controls.initialize(this.displayCanvas, this.state, {
             onAction: (code) => this.handleAction(code),
             onTap: (pos) => this.handleTap(pos)
         });
+        this.state.keys = Controls.keys; // Link the controls keys to the state
 
         // TODO: Load audio sources from levelData
         // await AudioSystem.load(this.levelData.audio);
 
         // --- Setup Level & Start ---
-        this.resetLevel();
-        logDebug('Level reset for the first time.');
         this.resize();
-        logDebug('Initial resize complete.');
         window.addEventListener('resize', () => this.resize());
 
-        logDebug('Starting game loop...');
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     },
 
     // --- Game Loop ---
     gameLoop: function(timestamp) {
-        logDebug('GAME LOOP EXECUTED! Timestamp: ' + timestamp);
-        // All other logic is removed for this test.
+        if (this.state.gameState === 'playing') {
+            Physics.update(this.state, this.levelData);
+        }
+
+        Renderer.draw(this.displayCtx, this.gameCtx, this.state, this.levelData);
+
+        // Handle post-update logic
+        this.state.pendingSounds.forEach(sound => AudioSystem.playSound(sound));
+        this.state.pendingSounds = [];
+
+        if (this.state.shouldReset) {
+            this.resetLevel();
+            this.state.shouldReset = false;
+        }
+
+        requestAnimationFrame((t) => this.gameLoop(t));
     },
 
     // --- Level Management ---

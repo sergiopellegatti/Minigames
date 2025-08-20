@@ -1,5 +1,3 @@
-logDebug('js/controls.js loaded.');
-
 // --- STATE ---
 let keys = {};
 
@@ -50,7 +48,6 @@ const Controls = {
 
     // The engine will call this to set up the listeners
     initialize: function(canvas, state, callbacks) {
-        logDebug('Controls.initialize called.');
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
             if (callbacks.onAction) callbacks.onAction(e.code);
@@ -79,9 +76,8 @@ const Controls = {
         canvas.addEventListener('click', e => {
             if (callbacks.onTap) {
                 const clickPos = { x: e.offsetX, y: e.offsetY };
-                callbacks.onTap(clickPos);
+                callbacks.onTap(pos);
             }
         });
-        logDebug('Controls initialized.');
     }
 };
