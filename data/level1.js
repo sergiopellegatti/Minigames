@@ -24,7 +24,7 @@ const level1Data = {
     },
     "enemies": null,
     "powerUps": [
-        { "type": "doubleJump", "x": 800, "y": 250 }
+        { "type": "doubleJump", "x": 925, "y": 350 }
     ],
     "quanta": {
         "offsetY": -30,

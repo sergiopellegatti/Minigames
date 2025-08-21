@@ -183,6 +183,9 @@ const Renderer = {
                     case 'waveMarble':
                         this.drawWaveMarbleIcon(ctx);
                         break;
+                    case 'magnifyingSphere':
+                        this.drawMagnifyingSphereIcon(ctx);
+                        break;
                     default:
                         this.drawDefaultPowerUpIcon(ctx);
                         break;
@@ -231,6 +234,25 @@ const Renderer = {
         }
         ctx.closePath();
         ctx.fill();
+        ctx.stroke();
+    },
+
+    drawMagnifyingSphereIcon: function(ctx) {
+        // Sphere
+        ctx.fillStyle = 'rgba(180, 180, 180, 0.7)';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Magnifying glass handle
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(12, 12);
+        ctx.lineTo(20, 20);
         ctx.stroke();
     },
 
@@ -312,33 +334,43 @@ const Renderer = {
 
 drawPowerUpHUD: function(dCtx, state, level) {
     const { player, scale, gameWidth } = state;
-    let iconX = (gameWidth - 50) * scale;
-    const iconY = 20 * scale;
+    const hudY = 20 * scale;
+    const barHeight = 8 * scale;
+    const barWidth = 60 * scale;
 
-    for (const key in player.abilities) {
-        const ability = player.abilities[key];
-        if (ability.active && !ability.permanent) {
-            dCtx.save();
-            dCtx.translate(iconX, iconY);
-            dCtx.scale(0.5, 0.5); // Draw icons smaller in HUD
+    const activePowerUps = Object.values(player.abilities).filter(a => a.active && !a.permanent);
+    const totalWidth = activePowerUps.length * (barWidth + 10 * scale);
+    let startX = (gameWidth * scale / 2) - (totalWidth / 2);
 
-            switch (ability.icon) {
-                case 'jetpack':
-                    this.drawJetpackIcon(dCtx);
-                    break;
-                default:
-                    // could draw a default icon here if needed
-                    break;
-            }
-            dCtx.restore();
+    for (const ability of activePowerUps) {
+        const iconX = startX + barWidth / 2;
+        const barX = startX;
+        const barY = hudY + 25 * scale;
 
-            dCtx.fillStyle = 'white';
-            dCtx.font = `bold ${18*scale}px "Comic Sans MS"`;
-            dCtx.textAlign = 'right';
-            dCtx.fillText(Math.ceil(ability.timer / 60), iconX - 25 * scale, iconY + 10 * scale);
-
-            iconX -= 60 * scale; // Move position for next icon
+        // Draw Icon
+        dCtx.save();
+        dCtx.translate(iconX, hudY);
+        dCtx.scale(0.6, 0.6);
+        switch (ability.icon) {
+            case 'jetpack':
+                this.drawJetpackIcon(dCtx);
+                break;
+            case 'magnifyingSphere':
+                this.drawMagnifyingSphereIcon(dCtx);
+                break;
+            default:
+                break;
         }
+        dCtx.restore();
+
+        // Draw Progress Bar
+        const progress = ability.timer / ability.duration;
+        dCtx.fillStyle = 'rgba(255,255,255,0.3)';
+        dCtx.fillRect(barX, barY, barWidth, barHeight);
+        dCtx.fillStyle = 'white';
+        dCtx.fillRect(barX, barY, barWidth * progress, barHeight);
+
+        startX += barWidth + 10 * scale;
     }
 },
 

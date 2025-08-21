@@ -25,7 +25,8 @@ const level3Data = {
     },
     "enemies": null,
     "powerUps": [
-        { "type": "split", "x": 625, "y": 125 }
+        { "type": "split", "x": 625, "y": 200 },
+        { "type": "revert", "x": 1750, "y": 200 }
     ],
     "doors": [
         { "x": 700, "y": 225, "width": 20, "openingHeight": 200, "speed": 0.5, "state": "closing" },

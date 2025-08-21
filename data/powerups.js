@@ -8,5 +8,10 @@ const PowerUps = {
         "ability": "split",
         "duration": 300, // 5 seconds at 60fps
         "icon": "waveMarble"
+    },
+    "revert": {
+        "ability": "revert",
+        "duration": 0,
+        "icon": "magnifyingSphere"
     }
 };
