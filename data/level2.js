@@ -1,15 +1,12 @@
 const level2Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 2",
-    "player": {
-        "width": 40,
-        "height": 40,
-        "speed": 5,
-        "style": "quanti",
-        "scaleFactor": 1.25
-    },
+    "nextLevel": "level3.html",
+    "character": "Quanti",
+    "unlockedAbilities": ["doubleJump"],
     "physics": {
         "gravity": 0.6,
         "jumpStrength": -15,
+        "doubleJumpStrength": -22,
         "quantumJumpStrength": -28
     },
     "background": {
@@ -52,7 +49,8 @@ const level2Data = {
             "subtitle": "Hai compiuto un altro Salto Quantico!",
             "message1": "Proprio come hai saltato da un atomo all'altro, un elettrone può 'saltare' da un'orbita all'altra assorbendo energia.",
             "message2": "Non può esistere a metà strada! Questo è uno dei misteri fondamentali del mondo quantico. Missione compiuta!",
-            "buttonText": "Hai completato il gioco! Rigioca"
+            "buttonText": "Vai al Livello 3"
         }
-    }
+    },
+    "audio": {}
 };

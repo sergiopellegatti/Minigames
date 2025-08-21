@@ -31,7 +31,7 @@
     <!-- Load all game modules -->
     <script src="data/characters.js"></script>
     <script src="data/powerups.js"></script>
-    <script src="data/level2.js"></script>
+    <script src="data/level3.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/controls.js"></script>
     <script src="js/physics.js"></script>
@@ -40,9 +40,9 @@
 
     <!-- Start the game -->
     <script>
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             // Initialize the engine with the canvas ID and the level data object
-            Engine.init('gameCanvas', level2Data);
+            await Engine.init('gameCanvas', level3Data);
         });
     </script>
 </body>

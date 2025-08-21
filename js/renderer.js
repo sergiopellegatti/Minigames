@@ -10,8 +10,10 @@ const Renderer = {
         if (gameState === 'playing') {
             this.drawPlatforms(gCtx, state, level);
             this.drawQuanta(gCtx, state, level);
+            this.drawPowerUps(gCtx, state, level);
+            this.drawDoors(gCtx, state, level);
             this.drawEnemies(gCtx, state, level);
-            this.drawPlayer(gCtx, state, level);
+            this.drawPlayers(gCtx, state, level);
         }
 
         // Draw the game canvas to the visible display canvas
@@ -81,61 +83,65 @@ const Renderer = {
         }
     },
 
-    drawPlayer: function(ctx, state, level) {
-        const { player, scrollOffset, score, quantaGoal, quantumLeapReady } = state;
-        const { style } = level.player;
+    drawPlayers: function(ctx, state, level) {
+        const { players, scrollOffset, score, quantaGoal } = state;
 
-        ctx.save();
-        ctx.translate(player.x - scrollOffset, player.y);
+        players.forEach((player, index) => {
+            const { style, scaleFactor, isJumping, abilities } = player;
+            const quantumLeapReady = abilities.quantumLeap?.active; // Example of ability check
 
-        if (style === 'quanti') {
-            const scaleFactor = level.player.scaleFactor || 1;
-            ctx.translate(player.width / 2, player.height / 2);
-            ctx.scale(scaleFactor, scaleFactor);
-            ctx.translate(-player.width / 2, -player.height / 2);
+            ctx.save();
+            ctx.translate(player.x - scrollOffset, player.y);
 
-            const progress = Math.min(score / quantaGoal, 1);
-            const g = Math.floor(255 - (150 * progress));
-            const b = Math.floor(0 + (100 * progress));
-            const currentColor = `rgb(255, ${g}, ${b})`;
+            if (style === 'quanti') {
+                const resolvedScaleFactor = scaleFactor || 1;
+                ctx.translate(player.width / 2, player.height / 2);
+                ctx.scale(resolvedScaleFactor, resolvedScaleFactor);
+                ctx.translate(-player.width / 2, -player.height / 2);
 
-            ctx.shadowColor = quantumLeapReady ? 'white' : 'yellow';
-            ctx.shadowBlur = 20;
-            ctx.fillStyle = currentColor;
-            ctx.beginPath();
-            ctx.arc(player.width / 2, player.height / 2, player.width / 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#888';
-            ctx.fillRect(player.width/2 - 5, player.height/2, 10, player.height/2 + 5);
-            if (player.isJumping) {
-                ctx.fillStyle = 'orange';
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    ctx.arc(player.width/2, player.height+Math.random()*10, Math.random()*5, 0, Math.PI*2);
-                    ctx.fill();
+                const progress = Math.min(score / quantaGoal, 1);
+                const g = Math.floor(255 - (150 * progress));
+                const b = Math.floor(0 + (100 * progress));
+                const currentColor = `rgb(255, ${g}, ${b})`;
+
+                ctx.shadowColor = quantumLeapReady ? 'white' : 'yellow';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = currentColor;
+                ctx.beginPath();
+                ctx.arc(player.width / 2, player.height / 2, player.width / 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#888';
+                ctx.fillRect(player.width/2 - 5, player.height/2, 10, player.height/2 + 5);
+                if (isJumping) {
+                    ctx.fillStyle = 'orange';
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        ctx.arc(player.width/2, player.height+Math.random()*10, Math.random()*5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
                 }
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(player.width/3, player.height/2, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(player.width*2/3, player.height/2, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(player.width/3+6, player.height/2);
+                ctx.lineTo(player.width*2/3-6, player.height/2);
+                ctx.stroke();
+            } else { // Default simple player
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, 0, player.width, player.height);
             }
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(player.width/3, player.height/2, 6, 0, Math.PI*2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(player.width*2/3, player.height/2, 6, 0, Math.PI*2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(player.width/3+6, player.height/2);
-            ctx.lineTo(player.width*2/3-6, player.height/2);
-            ctx.stroke();
-        } else { // Default simple player
-            ctx.fillStyle = 'red';
-            ctx.fillRect(0, 0, player.width, player.height);
-        }
-        ctx.restore();
+            ctx.restore();
+        });
     },
 
     drawQuanta: function(ctx, state, level) {
@@ -148,6 +154,174 @@ const Renderer = {
                 ctx.fill();
             }
         });
+    },
+
+    drawDoors: function(ctx, state, level) {
+        const { doors, scrollOffset, gameHeight } = state;
+        ctx.fillStyle = '#a52a2a'; // A brownish color for the doors
+
+        doors.forEach(d => {
+            if (d.type === 'single') {
+                const currentOpening = d.openingHeight * d.currentOpeningRatio;
+                const openingTop = d.y - currentOpening / 2;
+                const openingBottom = d.y + currentOpening / 2;
+
+                // Top part of the door
+                ctx.fillRect(d.x - scrollOffset, 0, d.width, openingTop);
+                // Bottom part of the door
+                ctx.fillRect(d.x - scrollOffset, openingBottom, d.width, gameHeight - openingBottom);
+            } else if (d.type === 'double') {
+                const open1 = d.openings[0];
+                const open2 = d.openings[1];
+                const currentOpening1 = open1.height * d.currentOpeningRatio;
+                const currentOpening2 = open2.height * d.currentOpeningRatio;
+
+                const opening1Top = open1.y - currentOpening1 / 2;
+                const opening1Bottom = open1.y + currentOpening1 / 2;
+                const opening2Top = open2.y - currentOpening2 / 2;
+                const opening2Bottom = open2.y + currentOpening2 / 2;
+
+                // Top bar
+                ctx.fillRect(d.x - scrollOffset, 0, d.width, opening1Top);
+                // Middle bar
+                ctx.fillRect(d.x - scrollOffset, opening1Bottom, d.width, opening2Top - opening1Bottom);
+                // Bottom bar
+                ctx.fillRect(d.x - scrollOffset, opening2Bottom, d.width, gameHeight - opening2Bottom);
+            }
+        });
+    },
+
+    drawPowerUps: function(ctx, state, level) {
+        const { powerUps, scrollOffset } = state;
+
+        powerUps.forEach(p => {
+            if (p.active) {
+                ctx.save();
+                ctx.translate(p.x - scrollOffset, p.y);
+
+                switch (p.icon) {
+                    case 'jetpack':
+                        this.drawJetpackIcon(ctx);
+                        break;
+                    case 'waveMarble':
+                        this.drawWaveMarbleIcon(ctx);
+                        break;
+                    case 'magnifyingSphere':
+                        this.drawMagnifyingSphereIcon(ctx);
+                        break;
+                    default:
+                        this.drawDefaultPowerUpIcon(ctx);
+                        break;
+                }
+
+                ctx.restore();
+            }
+        });
+    },
+
+    // --- Text Helper ---
+    drawWrappedText: function(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let testLine;
+        let metrics;
+        let testWidth;
+
+        for (let n = 0; n < words.length; n++) {
+            testLine = line + words[n] + ' ';
+            metrics = ctx.measureText(testLine);
+            testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, x, y);
+                line = words[n] + ' ';
+                y += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, y);
+    },
+
+    // --- Icon Drawing Helpers ---
+    drawDefaultPowerUpIcon: function(ctx) {
+        ctx.fillStyle = 'yellow';
+        ctx.strokeStyle = 'gold';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        for (let i = 0; i < 5; i++) {
+            ctx.rotate(Math.PI / 5);
+            ctx.lineTo(0, - (15 * 0.5));
+            ctx.rotate(Math.PI / 5);
+            ctx.lineTo(0, -15);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    },
+
+    drawMagnifyingSphereIcon: function(ctx) {
+        // Sphere
+        ctx.fillStyle = 'rgba(180, 180, 180, 0.7)';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Magnifying glass handle
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(12, 12);
+        ctx.lineTo(20, 20);
+        ctx.stroke();
+    },
+
+    drawWaveMarbleIcon: function(ctx) {
+        // Marble
+        ctx.fillStyle = 'rgba(200, 200, 255, 0.7)';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Wave
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.quadraticCurveTo(-5, -10, 0, 0);
+        ctx.quadraticCurveTo(5, 10, 10, 0);
+        ctx.stroke();
+    },
+
+    drawJetpackIcon: function(ctx) {
+        // Body of the jetpack
+        ctx.fillStyle = '#ccc';
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-10, -15, 20, 30);
+        ctx.strokeRect(-10, -15, 20, 30);
+
+        // Flame
+        ctx.fillStyle = 'orange';
+        ctx.beginPath();
+        ctx.moveTo(0, 15);
+        ctx.lineTo(-7, 25);
+        ctx.lineTo(7, 25);
+        ctx.closePath();
+        ctx.fill();
+
+        // "x2" text
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('x2', 0, 0);
     },
 
     drawEnemies: function(ctx, state, level) {
@@ -174,10 +348,56 @@ const Renderer = {
             dCtx.textAlign = 'center';
             dCtx.fillText('SALTO QUANTICO PRONTO!', (gameWidth / 2) * scale, 30 * scale);
         }
+    this.drawPowerUpHUD(dCtx, state, level);
         // Touch controls are part of UI
         this.drawControls(dCtx, state, level);
         this.drawFullscreenButton(dCtx, state, level);
         this.drawAudioButton(dCtx, state, level);
+    },
+
+    drawPowerUpHUD: function(dCtx, state, level) {
+        const { player, scale, gameWidth } = state;
+        const hudY = 20 * scale;
+        const barHeight = 8 * scale;
+        const barWidth = 60 * scale;
+
+        const activePowerUps = Object.values(player.abilities).filter(a => a.active && !a.permanent);
+        const totalWidth = activePowerUps.length * (barWidth + 10 * scale);
+        let startX = (gameWidth * scale / 2) - (totalWidth / 2);
+
+        for (const ability of activePowerUps) {
+            const iconX = startX + barWidth / 2;
+            const barX = startX;
+            const barY = hudY + 25 * scale;
+
+            // Draw Icon
+            dCtx.save();
+            dCtx.translate(iconX, hudY);
+            dCtx.scale(0.6, 0.6);
+            switch (ability.icon) {
+                case 'jetpack':
+                    this.drawJetpackIcon(dCtx);
+                    break;
+                case 'waveMarble':
+                    this.drawWaveMarbleIcon(dCtx);
+                    break;
+                case 'magnifyingSphere':
+                    this.drawMagnifyingSphereIcon(dCtx);
+                    break;
+                default:
+                    break;
+            }
+            dCtx.restore();
+
+            // Draw Progress Bar
+            const progress = ability.timer / ability.duration;
+            dCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            dCtx.fillRect(barX, barY, barWidth, barHeight);
+            dCtx.fillStyle = 'white';
+            dCtx.fillRect(barX, barY, barWidth * progress, barHeight);
+
+            startX += barWidth + 10 * scale;
+        }
     },
 
     drawControls: function(dCtx, state, level) {
@@ -240,20 +460,29 @@ const Renderer = {
     drawStartScreen: function(dCtx, state, level) {
         const { gameWidth, gameHeight, scale, startButton } = state;
         const { ui } = level;
+        const maxWidth = (gameWidth - 80) * scale;
+        const lineHeight = 24 * scale;
+        const centerX = (gameWidth / 2) * scale;
+
         dCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         dCtx.fillRect(0, 0, gameWidth * scale, gameHeight * scale);
         dCtx.fillStyle = 'white';
         dCtx.textAlign = 'center';
+
         dCtx.font = `bold ${36*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.title, (gameWidth / 2)*scale, (gameHeight / 2 - 150)*scale);
+        dCtx.fillText(ui.startScreen.title, centerX, (gameHeight / 2 - 150) * scale);
+
         dCtx.font = `${20*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.subtitle1, (gameWidth/2)*scale, (gameHeight/2 - 90)*scale);
-        dCtx.fillText(ui.startScreen.subtitle2, (gameWidth/2)*scale, (gameHeight/2 - 60)*scale);
+        this.drawWrappedText(dCtx, ui.startScreen.subtitle1, centerX, (gameHeight / 2 - 90) * scale, maxWidth, lineHeight);
+        this.drawWrappedText(dCtx, ui.startScreen.subtitle2, centerX, (gameHeight / 2 - 60) * scale, maxWidth, lineHeight);
+
         dCtx.fillStyle = 'gold';
         dCtx.font = `bold ${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.levelTitle, (gameWidth/2)*scale, (gameHeight/2 - 10)*scale);
+        dCtx.fillText(ui.startScreen.levelTitle, centerX, (gameHeight / 2) * scale);
+
         dCtx.font = `${18*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.instructions, (gameWidth/2)*scale, (gameHeight/2 + 25)*scale);
+        this.drawWrappedText(dCtx, ui.startScreen.instructions, centerX, (gameHeight / 2 + 35) * scale, maxWidth, lineHeight);
+
         const btn = startButton;
         dCtx.fillStyle = '#2c5b1b';
         dCtx.fillRect(btn.x*scale, btn.y*scale, btn.width*scale, btn.height*scale);
@@ -263,22 +492,35 @@ const Renderer = {
     },
 
     drawCompleteScreen: function(dCtx, state, level) {
-        const { gameWidth, gameHeight, scale } = state;
+        const { gameWidth, gameHeight, scale, startButton } = state;
         const { ui } = level;
+        const maxWidth = (gameWidth - 80) * scale;
+        const lineHeight = 22 * scale;
+        const centerX = (gameWidth / 2) * scale;
+
         dCtx.fillStyle = 'rgba(0,0,0,0.7)';
         dCtx.fillRect(0,0,gameWidth*scale, gameHeight*scale);
         dCtx.fillStyle = 'white';
         dCtx.textAlign = 'center';
+
+        // Title and messages
         dCtx.font = `bold ${40*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.title, (gameWidth/2)*scale, (gameHeight/2-80)*scale);
+        dCtx.fillText(ui.completeScreen.title, centerX, (gameHeight/2-120)*scale);
+
         dCtx.font = `${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.subtitle, (gameWidth/2)*scale, (gameHeight/2-40)*scale);
+        this.drawWrappedText(dCtx, ui.completeScreen.subtitle, centerX, (gameHeight/2-70)*scale, maxWidth, lineHeight);
+
         dCtx.fillStyle = 'gold';
         dCtx.font = `${18*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.message1, (gameWidth/2)*scale, (gameHeight/2)*scale);
-        dCtx.fillText(ui.completeScreen.message2, (gameWidth/2)*scale, (gameHeight/2+30)*scale);
+        this.drawWrappedText(dCtx, ui.completeScreen.message1, centerX, (gameHeight/2-20)*scale, maxWidth, lineHeight);
+        this.drawWrappedText(dCtx, ui.completeScreen.message2, centerX, (gameHeight/2+20)*scale, maxWidth, lineHeight);
+
+        // Button
+        const btn = startButton;
+        dCtx.fillStyle = '#2c5b1b';
+        dCtx.fillRect(btn.x*scale, (btn.y + 40)*scale, btn.width*scale, btn.height*scale); // Move button down
         dCtx.fillStyle = 'white';
-        dCtx.font = `${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.buttonText, (gameWidth/2)*scale, (gameHeight/2+80)*scale);
+        dCtx.font = `bold ${28*scale}px "Comic Sans MS"`;
+        dCtx.fillText(ui.completeScreen.buttonText, (btn.x + btn.width/2)*scale, (btn.y + 40 + btn.height/2 + 5)*scale);
     }
 };

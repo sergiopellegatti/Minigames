@@ -12,7 +12,7 @@ const Engine = {
     levelData: null,
 
     // --- Initialization ---
-    init: function(canvasId, levelData) {
+    init: async function(canvasId, levelData) {
         // --- Canvas Setup ---
         this.displayCanvas = document.getElementById(canvasId);
         this.displayCtx = this.displayCanvas.getContext('2d');
@@ -34,15 +34,19 @@ const Engine = {
             quantaGoal: 0,
             quantumLeapReady: false,
             // Entities
-            player: { ...this.levelData.player, velocityX: 0, velocityY: 0, isJumping: true },
+            players: [this.initializePlayerState(this.levelData.character)],
             platforms: [],
             quanta: [],
             atoms: [],
             electrons: [],
+            powerUps: [],
+            collectedPowerUps: [],
+            doors: [],
             // Timers & flags
             electronTimer: 0,
             shouldReset: false,
             pendingSounds: [],
+            prevKeys: {},
             // UI elements
             touchControls: { left: { x: 50, y: 360, width: 70, height: 70, key: 'ArrowLeft' }, right: { x: 140, y: 360, width: 70, height: 70, key: 'ArrowRight' }, jump: { x: 680, y: 360, width: 70, height: 70, key: 'Space' } },
             fullscreenButton: { x: 750, y: 10, width: 40, height: 40 },
@@ -61,8 +65,8 @@ const Engine = {
         });
         this.state.keys = Controls.keys; // Link the controls keys to the state
 
-        // TODO: Load audio sources from levelData
-        // await AudioSystem.load(this.levelData.audio);
+        // Load audio sources from levelData
+        await AudioSystem.load(this.levelData.audio);
 
         // --- Setup Level & Start ---
         this.resize();
@@ -71,10 +75,37 @@ const Engine = {
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     },
 
+    initializePlayerState: function(characterName) {
+        const characterData = Characters[characterName];
+        const playerState = {
+            ...characterData,
+            velocityX: 0,
+            velocityY: 0,
+            isJumping: true,
+            jumpCount: 0,
+            abilities: {}
+        };
+
+        if (characterData.possibleAbilities) {
+            characterData.possibleAbilities.forEach(ability => {
+                playerState.abilities[ability] = {
+                    active: false,
+                    permanent: false,
+                    timer: 0,
+                    duration: 0
+                };
+            });
+        }
+
+        return playerState;
+    },
+
     // --- Game Loop ---
     gameLoop: function(timestamp) {
         if (this.state.gameState === 'playing') {
             Physics.update(this.state, this.levelData);
+            this.updateAbilities(this.state);
+            this.updateDoors(this.state);
         }
 
         Renderer.draw(this.displayCtx, this.gameCtx, this.state, this.levelData);
@@ -88,17 +119,84 @@ const Engine = {
             this.state.shouldReset = false;
         }
 
+        // Update prevKeys for the next frame's input check
+        this.state.prevKeys = { ...this.state.keys };
+
         requestAnimationFrame((t) => this.gameLoop(t));
+    },
+
+    updateAbilities: function(state) {
+        const player1 = state.players[0];
+
+        // Activate collected power-ups
+        if (state.collectedPowerUps.length > 0) {
+            state.collectedPowerUps.forEach(p => {
+                if (p.ability === 'revert') {
+                    for (const key in player1.abilities) {
+                        const ability = player1.abilities[key];
+                        if (ability.active && !ability.permanent) {
+                            ability.timer = 0;
+                        }
+                    }
+                } else {
+                    const ability = player1.abilities[p.ability];
+                    if (ability) {
+                        ability.active = true;
+                        ability.timer = p.duration;
+                        ability.duration = p.duration;
+                        ability.icon = p.icon;
+                    }
+                }
+            });
+            state.collectedPowerUps = [];
+        }
+
+        // Update timers and handle expiration
+        for (const key in player1.abilities) {
+            const ability = player1.abilities[key];
+            if (ability.timer > 0) {
+                ability.timer--;
+                if (ability.timer === 0 && !ability.permanent) {
+                    ability.active = false;
+                }
+            }
+        }
+    },
+
+    updateDoors: function(state) {
+        state.doors.forEach(d => {
+            const speedRatio = d.speed / 100;
+            if (d.state === 'closing') {
+                d.currentOpeningRatio -= speedRatio;
+                if (d.currentOpeningRatio <= 0) {
+                    d.currentOpeningRatio = 0;
+                    d.state = 'opening';
+                }
+            } else { // opening
+                d.currentOpeningRatio += speedRatio;
+                if (d.currentOpeningRatio >= 1) {
+                    d.currentOpeningRatio = 1;
+                    d.state = 'closing';
+                }
+            }
+        });
     },
 
     // --- Level Management ---
     resetLevel: function() {
         // Reset player state
-        this.state.player.x = 0;
-        this.state.player.y = 0;
-        this.state.player.velocityX = 0;
-        this.state.player.velocityY = 0;
-        this.state.player.isJumping = true;
+        this.state.players = [this.initializePlayerState(this.levelData.character)];
+        const player = this.state.players[0];
+
+        // Apply permanent unlocks for the level
+        if (this.levelData.unlockedAbilities) {
+            this.levelData.unlockedAbilities.forEach(ability => {
+                if (player.abilities[ability]) {
+                    player.abilities[ability].active = true;
+                    player.abilities[ability].permanent = true;
+                }
+            });
+        }
 
         // Reset progress
         this.state.scrollOffset = 0;
@@ -111,8 +209,8 @@ const Engine = {
         this.setupLevelLayout();
 
         // Place player at start
-        this.state.player.x = this.state.platforms[0].x + (this.state.platforms[0].width / 2) - (this.state.player.width / 2);
-        this.state.player.y = this.state.platforms[0].y - this.state.player.height;
+        player.x = this.state.platforms[0].x + (this.state.platforms[0].width / 2) - (player.width / 2);
+        player.y = this.state.platforms[0].y - player.height;
 
         this.state.gameState = 'playing';
         AudioSystem.playMusic();
@@ -122,31 +220,86 @@ const Engine = {
         this.state.platforms = [];
         this.state.quanta = [];
         this.state.atoms = [];
+        this.state.powerUps = [];
+        this.state.doors = [];
 
-        let currentX = this.levelData.platforms.initialX;
-        for (let i = 0; i < this.levelData.platforms.count; i++) {
-            const pConf = this.levelData.platforms;
-            const y = pConf.yRange[0] + Math.random() * (pConf.yRange[1] - pConf.yRange[0]);
-            const width = pConf.widthRange[0] + Math.random() * (pConf.widthRange[1] - pConf.widthRange[0]);
-
-            this.state.platforms.push({ x: currentX, y: this.state.gameHeight - y, width: width, height: width });
-
-            if (this.levelData.background.type === 'atomic') {
-                 this.state.atoms.push({x: currentX + width/2, y: (this.state.gameHeight - y) + width/2, radius: width/2});
-            }
-
-            if (i > 0) {
-                const qConf = this.levelData.quanta;
-                this.state.quanta.push({ x: currentX + width/2, y: (this.state.gameHeight - y) + qConf.offsetY, width: qConf.width, height: qConf.height, active: true });
-            }
-            currentX += pConf.gap[0] + Math.random() * (pConf.gap[1] - pConf.gap[0]);
+        // Load doors if they exist in level data
+        if (this.levelData.doors) {
+            this.levelData.doors.forEach(d => {
+                this.state.doors.push({
+                    ...d,
+                    currentOpeningRatio: 1 // Start fully open
+                });
+            });
         }
 
-        // Add goal platform
-        const goalConf = this.levelData.platforms.goalPlatform;
-        this.state.platforms.push({ x: currentX, y: this.state.gameHeight - goalConf.y, width: goalConf.width, height: goalConf.height, goal: true });
-        if (this.levelData.background.type === 'atomic') {
-            this.state.atoms.push({x: currentX + goalConf.width/2, y: (this.state.gameHeight - goalConf.y) + goalConf.height/2, radius: goalConf.width/2, goal: true});
+        // Load power-ups if they exist in level data
+        if (this.levelData.powerUps) {
+            this.levelData.powerUps.forEach(p_instance => {
+                const p_base = PowerUps[p_instance.type];
+                if (p_base) {
+                    this.state.powerUps.push({
+                        ...p_base,
+                        x: p_instance.x,
+                        y: this.state.gameHeight - p_instance.y,
+                        active: true
+                    });
+                }
+            });
+        }
+
+        const pData = this.levelData.platforms;
+
+        // If a static layout is provided, use it
+        if (pData.layout) {
+            pData.layout.forEach((p, i) => {
+                const platform = {
+                    x: p.x,
+                    y: this.state.gameHeight - p.y,
+                    width: p.width,
+                    height: p.height,
+                    goal: p.goal || false
+                };
+                this.state.platforms.push(platform);
+
+                // Add quanta to all platforms except the first one
+                if (i > 0) {
+                    const qConf = this.levelData.quanta;
+                    this.state.quanta.push({
+                        x: platform.x + platform.width / 2,
+                        y: platform.y + qConf.offsetY,
+                        width: qConf.width,
+                        height: qConf.height,
+                        active: true
+                    });
+                }
+            });
+        } else { // Otherwise, generate the level procedurally
+            let currentX = pData.initialX;
+            for (let i = 0; i < pData.count; i++) {
+                const y = pData.yRange[0] + Math.random() * (pData.yRange[1] - pData.yRange[0]);
+                const width = pData.widthRange[0] + Math.random() * (pData.widthRange[1] - pData.widthRange[0]);
+                const platform = { x: currentX, y: this.state.gameHeight - y, width: width, height: width };
+                this.state.platforms.push(platform);
+
+                if (this.levelData.background.type === 'atomic') {
+                    this.state.atoms.push({ x: currentX + width / 2, y: platform.y + width / 2, radius: width / 2 });
+                }
+
+                if (i > 0) {
+                    const qConf = this.levelData.quanta;
+                    this.state.quanta.push({ x: currentX + width / 2, y: platform.y + qConf.offsetY, width: qConf.width, height: qConf.height, active: true });
+                }
+                currentX += pData.gap[0] + Math.random() * (pData.gap[1] - pData.gap[0]);
+            }
+
+            // Add goal platform
+            const goalConf = pData.goalPlatform;
+            const goalPlatform = { x: currentX, y: this.state.gameHeight - goalConf.y, width: goalConf.width, height: goalConf.height, goal: true };
+            this.state.platforms.push(goalPlatform);
+            if (this.levelData.background.type === 'atomic') {
+                this.state.atoms.push({ x: currentX + goalConf.width / 2, y: goalPlatform.y + goalConf.height / 2, radius: goalConf.width / 2, goal: true });
+            }
         }
 
         this.state.quantaGoal = this.state.quanta.length;
