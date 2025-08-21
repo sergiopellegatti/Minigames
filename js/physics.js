@@ -45,6 +45,35 @@ const Physics = {
             }
         });
 
+        // --- Collision Detection: Doors ---
+        state.doors?.forEach(d => {
+            const openingTop = d.y - d.currentOpeningHeight / 2;
+            const openingBottom = d.y + d.currentOpeningHeight / 2;
+
+            // Bounding box for the top part of the door
+            const topDoor = { x: d.x, y: 0, width: d.width, height: openingTop };
+            // Bounding box for the bottom part of the door
+            const bottomDoor = { x: d.x, y: openingBottom, width: d.width, height: state.gameHeight - openingBottom };
+
+            // Check collision with top part
+            if (player.x < topDoor.x + topDoor.width &&
+                player.x + player.width > topDoor.x &&
+                player.y < topDoor.y + topDoor.height &&
+                player.y + player.height > topDoor.y)
+            {
+                state.shouldReset = true;
+            }
+
+            // Check collision with bottom part
+            if (player.x < bottomDoor.x + bottomDoor.width &&
+                player.x + player.width > bottomDoor.x &&
+                player.y < bottomDoor.y + bottomDoor.height &&
+                player.y + player.height > bottomDoor.y)
+            {
+                state.shouldReset = true;
+            }
+        });
+
         // --- Collision Detection: Quanta ---
         quanta.forEach(q => {
             if (q.active &&

@@ -11,6 +11,7 @@ const Renderer = {
             this.drawPlatforms(gCtx, state, level);
             this.drawQuanta(gCtx, state, level);
             this.drawPowerUps(gCtx, state, level);
+            this.drawDoors(gCtx, state, level);
             this.drawEnemies(gCtx, state, level);
             this.drawPlayer(gCtx, state, level);
         }
@@ -151,6 +152,22 @@ const Renderer = {
         });
     },
 
+    drawDoors: function(ctx, state, level) {
+        const { doors, scrollOffset, gameHeight } = state;
+        ctx.fillStyle = '#a52a2a'; // A brownish color for the doors
+
+        doors.forEach(d => {
+            const openingTop = d.y - d.currentOpeningHeight / 2;
+            const openingBottom = d.y + d.currentOpeningHeight / 2;
+
+            // Top part of the door
+            ctx.fillRect(d.x - scrollOffset, 0, d.width, openingTop);
+
+            // Bottom part of the door
+            ctx.fillRect(d.x - scrollOffset, openingBottom, d.width, gameHeight - openingBottom);
+        });
+    },
+
     drawPowerUps: function(ctx, state, level) {
         const { powerUps, scrollOffset } = state;
 
@@ -162,6 +179,9 @@ const Renderer = {
                 switch (p.icon) {
                     case 'jetpack':
                         this.drawJetpackIcon(ctx);
+                        break;
+                    case 'waveMarble':
+                        this.drawWaveMarbleIcon(ctx);
                         break;
                     default:
                         this.drawDefaultPowerUpIcon(ctx);
@@ -188,6 +208,26 @@ const Renderer = {
         }
         ctx.closePath();
         ctx.fill();
+        ctx.stroke();
+    },
+
+    drawWaveMarbleIcon: function(ctx) {
+        // Marble
+        ctx.fillStyle = 'rgba(200, 200, 255, 0.7)';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Wave
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.quadraticCurveTo(-5, -10, 0, 0);
+        ctx.quadraticCurveTo(5, 10, 10, 0);
         ctx.stroke();
     },
 

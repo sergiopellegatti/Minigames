@@ -41,6 +41,7 @@ const Engine = {
             electrons: [],
             powerUps: [],
             collectedPowerUps: [],
+            doors: [],
             // Timers & flags
             electronTimer: 0,
             shouldReset: false,
@@ -103,6 +104,7 @@ const Engine = {
         if (this.state.gameState === 'playing') {
             Physics.update(this.state, this.levelData);
             this.updateAbilities(this.state);
+            this.updateDoors(this.state);
         }
 
         Renderer.draw(this.displayCtx, this.gameCtx, this.state, this.levelData);
@@ -146,6 +148,24 @@ const Engine = {
                 }
             }
         }
+    },
+
+    updateDoors: function(state) {
+        state.doors.forEach(d => {
+            if (d.state === 'closing') {
+                d.currentOpeningHeight -= d.speed;
+                if (d.currentOpeningHeight <= 0) {
+                    d.currentOpeningHeight = 0;
+                    d.state = 'opening';
+                }
+            } else { // opening
+                d.currentOpeningHeight += d.speed;
+                if (d.currentOpeningHeight >= d.openingHeight) {
+                    d.currentOpeningHeight = d.openingHeight;
+                    d.state = 'closing';
+                }
+            }
+        });
     },
 
     // --- Level Management ---
@@ -193,6 +213,17 @@ const Engine = {
         this.state.quanta = [];
         this.state.atoms = [];
         this.state.powerUps = [];
+        this.state.doors = [];
+
+        // Load doors if they exist in level data
+        if (this.levelData.doors) {
+            this.levelData.doors.forEach(d => {
+                this.state.doors.push({
+                    ...d,
+                    currentOpeningHeight: d.openingHeight // Start fully open or at max height
+                });
+            });
+        }
 
         // Load power-ups if they exist in level data
         if (this.levelData.powerUps) {
