@@ -193,6 +193,29 @@ const Renderer = {
         });
     },
 
+    // --- Text Helper ---
+    drawWrappedText: function(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let testLine;
+        let metrics;
+        let testWidth;
+
+        for (let n = 0; n < words.length; n++) {
+            testLine = line + words[n] + ' ';
+            metrics = ctx.measureText(testLine);
+            testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, x, y);
+                line = words[n] + ' ';
+                y += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, y);
+    },
+
     // --- Icon Drawing Helpers ---
     drawDefaultPowerUpIcon: function(ctx) {
         ctx.fillStyle = 'yellow';
@@ -379,20 +402,29 @@ drawPowerUpHUD: function(dCtx, state, level) {
     drawStartScreen: function(dCtx, state, level) {
         const { gameWidth, gameHeight, scale, startButton } = state;
         const { ui } = level;
+        const maxWidth = (gameWidth - 80) * scale;
+        const lineHeight = 24 * scale;
+        const centerX = (gameWidth / 2) * scale;
+
         dCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         dCtx.fillRect(0, 0, gameWidth * scale, gameHeight * scale);
         dCtx.fillStyle = 'white';
         dCtx.textAlign = 'center';
+
         dCtx.font = `bold ${36*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.title, (gameWidth / 2)*scale, (gameHeight / 2 - 150)*scale);
+        dCtx.fillText(ui.startScreen.title, centerX, (gameHeight / 2 - 150) * scale);
+
         dCtx.font = `${20*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.subtitle1, (gameWidth/2)*scale, (gameHeight/2 - 90)*scale);
-        dCtx.fillText(ui.startScreen.subtitle2, (gameWidth/2)*scale, (gameHeight/2 - 60)*scale);
+        this.drawWrappedText(dCtx, ui.startScreen.subtitle1, centerX, (gameHeight / 2 - 90) * scale, maxWidth, lineHeight);
+        this.drawWrappedText(dCtx, ui.startScreen.subtitle2, centerX, (gameHeight / 2 - 60) * scale, maxWidth, lineHeight);
+
         dCtx.fillStyle = 'gold';
         dCtx.font = `bold ${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.levelTitle, (gameWidth/2)*scale, (gameHeight/2 - 10)*scale);
+        dCtx.fillText(ui.startScreen.levelTitle, centerX, (gameHeight / 2) * scale);
+
         dCtx.font = `${18*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.startScreen.instructions, (gameWidth/2)*scale, (gameHeight/2 + 25)*scale);
+        this.drawWrappedText(dCtx, ui.startScreen.instructions, centerX, (gameHeight / 2 + 35) * scale, maxWidth, lineHeight);
+
         const btn = startButton;
         dCtx.fillStyle = '#2c5b1b';
         dCtx.fillRect(btn.x*scale, btn.y*scale, btn.width*scale, btn.height*scale);
@@ -402,22 +434,35 @@ drawPowerUpHUD: function(dCtx, state, level) {
     },
 
     drawCompleteScreen: function(dCtx, state, level) {
-        const { gameWidth, gameHeight, scale } = state;
+        const { gameWidth, gameHeight, scale, startButton } = state;
         const { ui } = level;
+        const maxWidth = (gameWidth - 80) * scale;
+        const lineHeight = 22 * scale;
+        const centerX = (gameWidth / 2) * scale;
+
         dCtx.fillStyle = 'rgba(0,0,0,0.7)';
         dCtx.fillRect(0,0,gameWidth*scale, gameHeight*scale);
         dCtx.fillStyle = 'white';
         dCtx.textAlign = 'center';
+
+        // Title and messages
         dCtx.font = `bold ${40*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.title, (gameWidth/2)*scale, (gameHeight/2-80)*scale);
+        dCtx.fillText(ui.completeScreen.title, centerX, (gameHeight/2-120)*scale);
+
         dCtx.font = `${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.subtitle, (gameWidth/2)*scale, (gameHeight/2-40)*scale);
+        this.drawWrappedText(dCtx, ui.completeScreen.subtitle, centerX, (gameHeight/2-70)*scale, maxWidth, lineHeight);
+
         dCtx.fillStyle = 'gold';
         dCtx.font = `${18*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.message1, (gameWidth/2)*scale, (gameHeight/2)*scale);
-        dCtx.fillText(ui.completeScreen.message2, (gameWidth/2)*scale, (gameHeight/2+30)*scale);
+        this.drawWrappedText(dCtx, ui.completeScreen.message1, centerX, (gameHeight/2-20)*scale, maxWidth, lineHeight);
+        this.drawWrappedText(dCtx, ui.completeScreen.message2, centerX, (gameHeight/2+20)*scale, maxWidth, lineHeight);
+
+        // Button
+        const btn = startButton;
+        dCtx.fillStyle = '#2c5b1b';
+        dCtx.fillRect(btn.x*scale, (btn.y + 40)*scale, btn.width*scale, btn.height*scale); // Move button down
         dCtx.fillStyle = 'white';
-        dCtx.font = `${22*scale}px "Comic Sans MS"`;
-        dCtx.fillText(ui.completeScreen.buttonText, (gameWidth/2)*scale, (gameHeight/2+80)*scale);
+        dCtx.font = `bold ${28*scale}px "Comic Sans MS"`;
+        dCtx.fillText(ui.completeScreen.buttonText, (btn.x + btn.width/2)*scale, (btn.y + 40 + btn.height/2 + 5)*scale);
     }
 };
