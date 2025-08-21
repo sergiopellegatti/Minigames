@@ -130,6 +130,7 @@ const Engine = {
                 if (ability) {
                     ability.active = true;
                     ability.timer = p.duration;
+                    ability.icon = p.icon; // Store icon for HUD rendering
                 }
             });
             state.collectedPowerUps = []; // Clear the array
@@ -195,12 +196,16 @@ const Engine = {
 
         // Load power-ups if they exist in level data
         if (this.levelData.powerUps) {
-            this.levelData.powerUps.forEach(p => {
-                this.state.powerUps.push({
-                    ...p,
-                    y: this.state.gameHeight - p.y,
-                    active: true
-                });
+            this.levelData.powerUps.forEach(p_instance => {
+                const p_base = PowerUps[p_instance.type];
+                if (p_base) {
+                    this.state.powerUps.push({
+                        ...p_base,
+                        x: p_instance.x,
+                        y: this.state.gameHeight - p_instance.y,
+                        active: true
+                    });
+                }
             });
         }
 

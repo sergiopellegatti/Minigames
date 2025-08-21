@@ -158,24 +158,62 @@ const Renderer = {
             if (p.active) {
                 ctx.save();
                 ctx.translate(p.x - scrollOffset, p.y);
-                ctx.fillStyle = 'yellow';
-                ctx.strokeStyle = 'gold';
-                ctx.lineWidth = 2;
 
-                ctx.beginPath();
-                ctx.moveTo(0, -15);
-                for (let i = 0; i < 5; i++) {
-                    ctx.rotate(Math.PI / 5);
-                    ctx.lineTo(0, - (15 * 0.5));
-                    ctx.rotate(Math.PI / 5);
-                    ctx.lineTo(0, -15);
+                switch (p.icon) {
+                    case 'jetpack':
+                        this.drawJetpackIcon(ctx);
+                        break;
+                    default:
+                        this.drawDefaultPowerUpIcon(ctx);
+                        break;
                 }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
+
                 ctx.restore();
             }
         });
+    },
+
+    // --- Icon Drawing Helpers ---
+    drawDefaultPowerUpIcon: function(ctx) {
+        ctx.fillStyle = 'yellow';
+        ctx.strokeStyle = 'gold';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        for (let i = 0; i < 5; i++) {
+            ctx.rotate(Math.PI / 5);
+            ctx.lineTo(0, - (15 * 0.5));
+            ctx.rotate(Math.PI / 5);
+            ctx.lineTo(0, -15);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    },
+
+    drawJetpackIcon: function(ctx) {
+        // Body of the jetpack
+        ctx.fillStyle = '#ccc';
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-10, -15, 20, 30);
+        ctx.strokeRect(-10, -15, 20, 30);
+
+        // Flame
+        ctx.fillStyle = 'orange';
+        ctx.beginPath();
+        ctx.moveTo(0, 15);
+        ctx.lineTo(-7, 25);
+        ctx.lineTo(7, 25);
+        ctx.closePath();
+        ctx.fill();
+
+        // "x2" text
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('x2', 0, 0);
     },
 
     drawEnemies: function(ctx, state, level) {
@@ -202,11 +240,44 @@ const Renderer = {
             dCtx.textAlign = 'center';
             dCtx.fillText('SALTO QUANTICO PRONTO!', (gameWidth / 2) * scale, 30 * scale);
         }
+    this.drawPowerUpHUD(dCtx, state, level);
         // Touch controls are part of UI
         this.drawControls(dCtx, state, level);
         this.drawFullscreenButton(dCtx, state, level);
         this.drawAudioButton(dCtx, state, level);
     },
+
+drawPowerUpHUD: function(dCtx, state, level) {
+    const { player, scale, gameWidth } = state;
+    let iconX = (gameWidth - 50) * scale;
+    const iconY = 20 * scale;
+
+    for (const key in player.abilities) {
+        const ability = player.abilities[key];
+        if (ability.active && !ability.permanent) {
+            dCtx.save();
+            dCtx.translate(iconX, iconY);
+            dCtx.scale(0.5, 0.5); // Draw icons smaller in HUD
+
+            switch (ability.icon) {
+                case 'jetpack':
+                    this.drawJetpackIcon(dCtx);
+                    break;
+                default:
+                    // could draw a default icon here if needed
+                    break;
+            }
+            dCtx.restore();
+
+            dCtx.fillStyle = 'white';
+            dCtx.font = `bold ${18*scale}px "Comic Sans MS"`;
+            dCtx.textAlign = 'right';
+            dCtx.fillText(Math.ceil(ability.timer / 60), iconX - 25 * scale, iconY + 10 * scale);
+
+            iconX -= 60 * scale; // Move position for next icon
+        }
+    }
+},
 
     drawControls: function(dCtx, state, level) {
         const { scale, touchControls, keys } = state;
