@@ -50,5 +50,6 @@ const level1Data = {
             "message2": "Il Regno dell'Invisibile conta su di te!",
             "buttonText": "Vai al Livello 2"
         }
-    }
+    },
+    "audio": {}
 };

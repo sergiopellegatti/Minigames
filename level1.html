@@ -38,9 +38,9 @@
 
     <!-- Start the game -->
     <script>
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             // Initialize the engine with the canvas ID and the level data object
-            Engine.init('gameCanvas', level1Data);
+            await Engine.init('gameCanvas', level1Data);
         });
     </script>
 </body>

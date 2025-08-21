@@ -12,7 +12,7 @@ const Engine = {
     levelData: null,
 
     // --- Initialization ---
-    init: function(canvasId, levelData) {
+    init: async function(canvasId, levelData) {
         // --- Canvas Setup ---
         this.displayCanvas = document.getElementById(canvasId);
         this.displayCtx = this.displayCanvas.getContext('2d');
@@ -61,8 +61,8 @@ const Engine = {
         });
         this.state.keys = Controls.keys; // Link the controls keys to the state
 
-        // TODO: Load audio sources from levelData
-        // await AudioSystem.load(this.levelData.audio);
+        // Load audio sources from levelData
+        await AudioSystem.load(this.levelData.audio);
 
         // --- Setup Level & Start ---
         this.resize();
