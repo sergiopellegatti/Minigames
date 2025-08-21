@@ -5,6 +5,6 @@ const Characters = {
         "speed": 5,
         "style": "quanti",
         "scaleFactor": 1.25,
-        "possibleAbilities": ["doubleJump"]
+        "possibleAbilities": ["doubleJump", "split"]
     }
 };

@@ -1,6 +1,6 @@
 const level3Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 3",
-    "nextLevel": null, // This is the last level for now
+    "nextLevel": null,
     "character": "Quanti",
     "unlockedAbilities": ["doubleJump"],
     "physics": {
@@ -11,7 +11,7 @@ const level3Data = {
     },
     "background": {
         "type": "starfield",
-        "color": "#200020" // A new purplish color
+        "color": "#200020"
     },
     "platforms": {
         "layout": [
@@ -23,14 +23,16 @@ const level3Data = {
             { "x": 1950, "y": 250, "width": 120, "height": 20, "goal": true }
         ]
     },
-    "enemies": null,
     "powerUps": [
         { "type": "split", "x": 625, "y": 200 },
         { "type": "revert", "x": 1750, "y": 200 }
     ],
     "doors": [
-        { "x": 700, "y": 225, "width": 20, "openingHeight": 200, "speed": 0.5, "state": "closing" },
-        { "x": 1450, "y": 225, "width": 20, "openingHeight": 100, "speed": 1, "state": "closing" }
+        { "type": "single", "x": 700, "y": 225, "width": 20, "openingHeight": 200, "speed": 1.5, "state": "closing" },
+        { "type": "double", "x": 1450, "width": 20, "speed": 2, "state": "closing", "openings": [
+            { "y": 125, "height": 80 },
+            { "y": 325, "height": 80 }
+        ]}
     ],
     "quanta": {
         "offsetY": -30,

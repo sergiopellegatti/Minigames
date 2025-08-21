@@ -13,7 +13,7 @@ const Renderer = {
             this.drawPowerUps(gCtx, state, level);
             this.drawDoors(gCtx, state, level);
             this.drawEnemies(gCtx, state, level);
-            this.drawPlayer(gCtx, state, level);
+            this.drawPlayers(gCtx, state, level);
         }
 
         // Draw the game canvas to the visible display canvas
@@ -83,61 +83,65 @@ const Renderer = {
         }
     },
 
-    drawPlayer: function(ctx, state, level) {
-        const { player, scrollOffset, score, quantaGoal, quantumLeapReady } = state;
-        const { style, scaleFactor } = player;
+    drawPlayers: function(ctx, state, level) {
+        const { players, scrollOffset, score, quantaGoal } = state;
 
-        ctx.save();
-        ctx.translate(player.x - scrollOffset, player.y);
+        players.forEach((player, index) => {
+            const { style, scaleFactor, isJumping, abilities } = player;
+            const quantumLeapReady = abilities.quantumLeap?.active; // Example of ability check
 
-        if (style === 'quanti') {
-            const resolvedScaleFactor = scaleFactor || 1;
-            ctx.translate(player.width / 2, player.height / 2);
-            ctx.scale(resolvedScaleFactor, resolvedScaleFactor);
-            ctx.translate(-player.width / 2, -player.height / 2);
+            ctx.save();
+            ctx.translate(player.x - scrollOffset, player.y);
 
-            const progress = Math.min(score / quantaGoal, 1);
-            const g = Math.floor(255 - (150 * progress));
-            const b = Math.floor(0 + (100 * progress));
-            const currentColor = `rgb(255, ${g}, ${b})`;
+            if (style === 'quanti') {
+                const resolvedScaleFactor = scaleFactor || 1;
+                ctx.translate(player.width / 2, player.height / 2);
+                ctx.scale(resolvedScaleFactor, resolvedScaleFactor);
+                ctx.translate(-player.width / 2, -player.height / 2);
 
-            ctx.shadowColor = quantumLeapReady ? 'white' : 'yellow';
-            ctx.shadowBlur = 20;
-            ctx.fillStyle = currentColor;
-            ctx.beginPath();
-            ctx.arc(player.width / 2, player.height / 2, player.width / 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#888';
-            ctx.fillRect(player.width/2 - 5, player.height/2, 10, player.height/2 + 5);
-            if (player.isJumping) {
-                ctx.fillStyle = 'orange';
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    ctx.arc(player.width/2, player.height+Math.random()*10, Math.random()*5, 0, Math.PI*2);
-                    ctx.fill();
+                const progress = Math.min(score / quantaGoal, 1);
+                const g = Math.floor(255 - (150 * progress));
+                const b = Math.floor(0 + (100 * progress));
+                const currentColor = `rgb(255, ${g}, ${b})`;
+
+                ctx.shadowColor = quantumLeapReady ? 'white' : 'yellow';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = currentColor;
+                ctx.beginPath();
+                ctx.arc(player.width / 2, player.height / 2, player.width / 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#888';
+                ctx.fillRect(player.width/2 - 5, player.height/2, 10, player.height/2 + 5);
+                if (isJumping) {
+                    ctx.fillStyle = 'orange';
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        ctx.arc(player.width/2, player.height+Math.random()*10, Math.random()*5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
                 }
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(player.width/3, player.height/2, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(player.width*2/3, player.height/2, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(player.width/3+6, player.height/2);
+                ctx.lineTo(player.width*2/3-6, player.height/2);
+                ctx.stroke();
+            } else { // Default simple player
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, 0, player.width, player.height);
             }
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(player.width/3, player.height/2, 6, 0, Math.PI*2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(player.width*2/3, player.height/2, 6, 0, Math.PI*2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(player.width/3+6, player.height/2);
-            ctx.lineTo(player.width*2/3-6, player.height/2);
-            ctx.stroke();
-        } else { // Default simple player
-            ctx.fillStyle = 'red';
-            ctx.fillRect(0, 0, player.width, player.height);
-        }
-        ctx.restore();
+            ctx.restore();
+        });
     },
 
     drawQuanta: function(ctx, state, level) {
@@ -157,14 +161,33 @@ const Renderer = {
         ctx.fillStyle = '#a52a2a'; // A brownish color for the doors
 
         doors.forEach(d => {
-            const openingTop = d.y - d.currentOpeningHeight / 2;
-            const openingBottom = d.y + d.currentOpeningHeight / 2;
+            if (d.type === 'single') {
+                const currentOpening = d.openingHeight * d.currentOpeningRatio;
+                const openingTop = d.y - currentOpening / 2;
+                const openingBottom = d.y + currentOpening / 2;
 
-            // Top part of the door
-            ctx.fillRect(d.x - scrollOffset, 0, d.width, openingTop);
+                // Top part of the door
+                ctx.fillRect(d.x - scrollOffset, 0, d.width, openingTop);
+                // Bottom part of the door
+                ctx.fillRect(d.x - scrollOffset, openingBottom, d.width, gameHeight - openingBottom);
+            } else if (d.type === 'double') {
+                const open1 = d.openings[0];
+                const open2 = d.openings[1];
+                const currentOpening1 = open1.height * d.currentOpeningRatio;
+                const currentOpening2 = open2.height * d.currentOpeningRatio;
 
-            // Bottom part of the door
-            ctx.fillRect(d.x - scrollOffset, openingBottom, d.width, gameHeight - openingBottom);
+                const opening1Top = open1.y - currentOpening1 / 2;
+                const opening1Bottom = open1.y + currentOpening1 / 2;
+                const opening2Top = open2.y - currentOpening2 / 2;
+                const opening2Bottom = open2.y + currentOpening2 / 2;
+
+                // Top bar
+                ctx.fillRect(d.x - scrollOffset, 0, d.width, opening1Top);
+                // Middle bar
+                ctx.fillRect(d.x - scrollOffset, opening1Bottom, d.width, opening2Top - opening1Bottom);
+                // Bottom bar
+                ctx.fillRect(d.x - scrollOffset, opening2Bottom, d.width, gameHeight - opening2Bottom);
+            }
         });
     },
 
@@ -332,47 +355,50 @@ const Renderer = {
         this.drawAudioButton(dCtx, state, level);
     },
 
-drawPowerUpHUD: function(dCtx, state, level) {
-    const { player, scale, gameWidth } = state;
-    const hudY = 20 * scale;
-    const barHeight = 8 * scale;
-    const barWidth = 60 * scale;
+    drawPowerUpHUD: function(dCtx, state, level) {
+        const { player, scale, gameWidth } = state;
+        const hudY = 20 * scale;
+        const barHeight = 8 * scale;
+        const barWidth = 60 * scale;
 
-    const activePowerUps = Object.values(player.abilities).filter(a => a.active && !a.permanent);
-    const totalWidth = activePowerUps.length * (barWidth + 10 * scale);
-    let startX = (gameWidth * scale / 2) - (totalWidth / 2);
+        const activePowerUps = Object.values(player.abilities).filter(a => a.active && !a.permanent);
+        const totalWidth = activePowerUps.length * (barWidth + 10 * scale);
+        let startX = (gameWidth * scale / 2) - (totalWidth / 2);
 
-    for (const ability of activePowerUps) {
-        const iconX = startX + barWidth / 2;
-        const barX = startX;
-        const barY = hudY + 25 * scale;
+        for (const ability of activePowerUps) {
+            const iconX = startX + barWidth / 2;
+            const barX = startX;
+            const barY = hudY + 25 * scale;
 
-        // Draw Icon
-        dCtx.save();
-        dCtx.translate(iconX, hudY);
-        dCtx.scale(0.6, 0.6);
-        switch (ability.icon) {
-            case 'jetpack':
-                this.drawJetpackIcon(dCtx);
-                break;
-            case 'magnifyingSphere':
-                this.drawMagnifyingSphereIcon(dCtx);
-                break;
-            default:
-                break;
+            // Draw Icon
+            dCtx.save();
+            dCtx.translate(iconX, hudY);
+            dCtx.scale(0.6, 0.6);
+            switch (ability.icon) {
+                case 'jetpack':
+                    this.drawJetpackIcon(dCtx);
+                    break;
+                case 'waveMarble':
+                    this.drawWaveMarbleIcon(dCtx);
+                    break;
+                case 'magnifyingSphere':
+                    this.drawMagnifyingSphereIcon(dCtx);
+                    break;
+                default:
+                    break;
+            }
+            dCtx.restore();
+
+            // Draw Progress Bar
+            const progress = ability.timer / ability.duration;
+            dCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            dCtx.fillRect(barX, barY, barWidth, barHeight);
+            dCtx.fillStyle = 'white';
+            dCtx.fillRect(barX, barY, barWidth * progress, barHeight);
+
+            startX += barWidth + 10 * scale;
         }
-        dCtx.restore();
-
-        // Draw Progress Bar
-        const progress = ability.timer / ability.duration;
-        dCtx.fillStyle = 'rgba(255,255,255,0.3)';
-        dCtx.fillRect(barX, barY, barWidth, barHeight);
-        dCtx.fillStyle = 'white';
-        dCtx.fillRect(barX, barY, barWidth * progress, barHeight);
-
-        startX += barWidth + 10 * scale;
-    }
-},
+    },
 
     drawControls: function(dCtx, state, level) {
         const { scale, touchControls, keys } = state;

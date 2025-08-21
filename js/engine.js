@@ -34,7 +34,7 @@ const Engine = {
             quantaGoal: 0,
             quantumLeapReady: false,
             // Entities
-            player: this.initializePlayerState(this.levelData.character),
+            players: [this.initializePlayerState(this.levelData.character)],
             platforms: [],
             quanta: [],
             atoms: [],
@@ -91,7 +91,8 @@ const Engine = {
                 playerState.abilities[ability] = {
                     active: false,
                     permanent: false,
-                    timer: 0
+                    timer: 0,
+                    duration: 0
                 };
             });
         }
@@ -125,34 +126,34 @@ const Engine = {
     },
 
     updateAbilities: function(state) {
+        const player1 = state.players[0];
+
         // Activate collected power-ups
         if (state.collectedPowerUps.length > 0) {
             state.collectedPowerUps.forEach(p => {
                 if (p.ability === 'revert') {
-                    // Handle revert power-up
-                    for (const key in state.player.abilities) {
-                        const ability = state.player.abilities[key];
+                    for (const key in player1.abilities) {
+                        const ability = player1.abilities[key];
                         if (ability.active && !ability.permanent) {
                             ability.timer = 0;
                         }
                     }
                 } else {
-                    // Handle other power-ups
-                    const ability = state.player.abilities[p.ability];
+                    const ability = player1.abilities[p.ability];
                     if (ability) {
                         ability.active = true;
                         ability.timer = p.duration;
-                    ability.duration = p.duration; // Store initial duration for progress bar
-                        ability.icon = p.icon; // Store icon for HUD rendering
+                        ability.duration = p.duration;
+                        ability.icon = p.icon;
                     }
                 }
             });
-            state.collectedPowerUps = []; // Clear the array
+            state.collectedPowerUps = [];
         }
 
-        // Update timers
-        for (const key in state.player.abilities) {
-            const ability = state.player.abilities[key];
+        // Update timers and handle expiration
+        for (const key in player1.abilities) {
+            const ability = player1.abilities[key];
             if (ability.timer > 0) {
                 ability.timer--;
                 if (ability.timer === 0 && !ability.permanent) {
@@ -164,16 +165,17 @@ const Engine = {
 
     updateDoors: function(state) {
         state.doors.forEach(d => {
+            const speedRatio = d.speed / 100;
             if (d.state === 'closing') {
-                d.currentOpeningHeight -= d.speed;
-                if (d.currentOpeningHeight <= 0) {
-                    d.currentOpeningHeight = 0;
+                d.currentOpeningRatio -= speedRatio;
+                if (d.currentOpeningRatio <= 0) {
+                    d.currentOpeningRatio = 0;
                     d.state = 'opening';
                 }
             } else { // opening
-                d.currentOpeningHeight += d.speed;
-                if (d.currentOpeningHeight >= d.openingHeight) {
-                    d.currentOpeningHeight = d.openingHeight;
+                d.currentOpeningRatio += speedRatio;
+                if (d.currentOpeningRatio >= 1) {
+                    d.currentOpeningRatio = 1;
                     d.state = 'closing';
                 }
             }
@@ -183,21 +185,15 @@ const Engine = {
     // --- Level Management ---
     resetLevel: function() {
         // Reset player state
-        const freshPlayerState = this.initializePlayerState(this.levelData.character);
-        this.state.player.x = 0;
-        this.state.player.y = 0;
-        this.state.player.velocityX = 0;
-        this.state.player.velocityY = 0;
-        this.state.player.isJumping = true;
-        this.state.player.jumpCount = 0;
-        this.state.player.abilities = freshPlayerState.abilities; // Reset abilities
+        this.state.players = [this.initializePlayerState(this.levelData.character)];
+        const player = this.state.players[0];
 
         // Apply permanent unlocks for the level
         if (this.levelData.unlockedAbilities) {
             this.levelData.unlockedAbilities.forEach(ability => {
-                if (this.state.player.abilities[ability]) {
-                    this.state.player.abilities[ability].active = true;
-                    this.state.player.abilities[ability].permanent = true;
+                if (player.abilities[ability]) {
+                    player.abilities[ability].active = true;
+                    player.abilities[ability].permanent = true;
                 }
             });
         }
@@ -213,8 +209,8 @@ const Engine = {
         this.setupLevelLayout();
 
         // Place player at start
-        this.state.player.x = this.state.platforms[0].x + (this.state.platforms[0].width / 2) - (this.state.player.width / 2);
-        this.state.player.y = this.state.platforms[0].y - this.state.player.height;
+        player.x = this.state.platforms[0].x + (this.state.platforms[0].width / 2) - (player.width / 2);
+        player.y = this.state.platforms[0].y - player.height;
 
         this.state.gameState = 'playing';
         AudioSystem.playMusic();
@@ -232,7 +228,7 @@ const Engine = {
             this.levelData.doors.forEach(d => {
                 this.state.doors.push({
                     ...d,
-                    currentOpeningHeight: d.openingHeight // Start fully open or at max height
+                    currentOpeningRatio: 1 // Start fully open
                 });
             });
         }
@@ -330,16 +326,13 @@ const Engine = {
             return;
         }
 
-        if (gameState === 'complete') {
-            const completeButton = { ...startButton, y: startButton.y + 40 };
-            if (isInside(pos, completeButton, scale)) {
-                if (this.levelData.nextLevel) {
-                    window.location.href = this.levelData.nextLevel;
-                } else {
-                    this.resetLevel();
-                }
-                return;
+        if (gameState === 'complete' && isInside(pos, startButton, scale)) {
+            if (this.levelData.nextLevel) {
+                window.location.href = this.levelData.nextLevel;
+            } else {
+                this.resetLevel();
             }
+            return;
         }
 
         if (this.state.isFullscreenSupported && isInside(pos, fullscreenButton, scale)) {

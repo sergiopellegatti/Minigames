@@ -51,5 +51,6 @@ const level2Data = {
             "message2": "Non può esistere a metà strada! Questo è uno dei misteri fondamentali del mondo quantico. Missione compiuta!",
             "buttonText": "Vai al Livello 3"
         }
-    }
+    },
+    "audio": {}
 };
