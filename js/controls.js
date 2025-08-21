@@ -76,7 +76,7 @@ const Controls = {
         canvas.addEventListener('click', e => {
             if (callbacks.onTap) {
                 const clickPos = { x: e.offsetX, y: e.offsetY };
-                callbacks.onTap(pos);
+                callbacks.onTap(clickPos);
             }
         });
     }
