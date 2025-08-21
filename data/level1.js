@@ -1,15 +1,11 @@
 const level1Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 1",
     "nextLevel": "level2.html",
-    "player": {
-        "width": 30,
-        "height": 30,
-        "speed": 5,
-        "style": "simple"
-    },
+    "character": "Quanti",
     "physics": {
         "gravity": 0.5,
         "jumpStrength": -12,
+        "doubleJumpStrength": -18,
         "quantumJumpStrength": -25
     },
     "background": {
@@ -17,16 +13,14 @@ const level1Data = {
         "color": "#000010"
     },
     "platforms": {
-        "count": 15,
-        "initialX": 200,
-        "gap": [150, 250],
-        "yRange": [100, 350],
-        "widthRange": [100, 180],
-        "goalPlatform": {
-            "y": 300,
-            "width": 120,
-            "height": 20
-        }
+        "layout": [
+            { "x": 200, "y": 100, "width": 250, "height": 20 },
+            { "x": 500, "y": 200, "width": 250, "height": 20 },
+            { "x": 800, "y": 300, "width": 250, "height": 20 },
+            { "x": 1100, "y": 250, "width": 250, "height": 20 },
+            { "x": 1400, "y": 150, "width": 250, "height": 20 },
+            { "x": 1700, "y": 200, "width": 120, "height": 20, "goal": true }
+        ]
     },
     "enemies": null,
     "quanta": {

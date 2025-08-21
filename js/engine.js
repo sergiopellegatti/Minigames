@@ -34,7 +34,7 @@ const Engine = {
             quantaGoal: 0,
             quantumLeapReady: false,
             // Entities
-            player: { ...this.levelData.player, velocityX: 0, velocityY: 0, isJumping: true },
+            player: { ...Characters[this.levelData.character], velocityX: 0, velocityY: 0, isJumping: true, jumpCount: 0 },
             platforms: [],
             quanta: [],
             atoms: [],
@@ -43,6 +43,7 @@ const Engine = {
             electronTimer: 0,
             shouldReset: false,
             pendingSounds: [],
+            prevKeys: {},
             // UI elements
             touchControls: { left: { x: 50, y: 360, width: 70, height: 70, key: 'ArrowLeft' }, right: { x: 140, y: 360, width: 70, height: 70, key: 'ArrowRight' }, jump: { x: 680, y: 360, width: 70, height: 70, key: 'Space' } },
             fullscreenButton: { x: 750, y: 10, width: 40, height: 40 },
@@ -88,6 +89,9 @@ const Engine = {
             this.state.shouldReset = false;
         }
 
+        // Update prevKeys for the next frame's input check
+        this.state.prevKeys = { ...this.state.keys };
+
         requestAnimationFrame((t) => this.gameLoop(t));
     },
 
@@ -123,30 +127,58 @@ const Engine = {
         this.state.quanta = [];
         this.state.atoms = [];
 
-        let currentX = this.levelData.platforms.initialX;
-        for (let i = 0; i < this.levelData.platforms.count; i++) {
-            const pConf = this.levelData.platforms;
-            const y = pConf.yRange[0] + Math.random() * (pConf.yRange[1] - pConf.yRange[0]);
-            const width = pConf.widthRange[0] + Math.random() * (pConf.widthRange[1] - pConf.widthRange[0]);
+        const pData = this.levelData.platforms;
 
-            this.state.platforms.push({ x: currentX, y: this.state.gameHeight - y, width: width, height: width });
+        // If a static layout is provided, use it
+        if (pData.layout) {
+            pData.layout.forEach((p, i) => {
+                const platform = {
+                    x: p.x,
+                    y: this.state.gameHeight - p.y,
+                    width: p.width,
+                    height: p.height,
+                    goal: p.goal || false
+                };
+                this.state.platforms.push(platform);
 
+                // Add quanta to all platforms except the first one
+                if (i > 0) {
+                    const qConf = this.levelData.quanta;
+                    this.state.quanta.push({
+                        x: platform.x + platform.width / 2,
+                        y: platform.y + qConf.offsetY,
+                        width: qConf.width,
+                        height: qConf.height,
+                        active: true
+                    });
+                }
+            });
+        } else { // Otherwise, generate the level procedurally
+            let currentX = pData.initialX;
+            for (let i = 0; i < pData.count; i++) {
+                const y = pData.yRange[0] + Math.random() * (pData.yRange[1] - pData.yRange[0]);
+                const width = pData.widthRange[0] + Math.random() * (pData.widthRange[1] - pData.widthRange[0]);
+                const platform = { x: currentX, y: this.state.gameHeight - y, width: width, height: width };
+                this.state.platforms.push(platform);
+
+                if (this.levelData.background.type === 'atomic') {
+                    this.state.atoms.push({ x: currentX + width / 2, y: platform.y + width / 2, radius: width / 2 });
+                }
+
+                if (i > 0) {
+                    const qConf = this.levelData.quanta;
+                    this.state.quanta.push({ x: currentX + width / 2, y: platform.y + qConf.offsetY, width: qConf.width, height: qConf.height, active: true });
+                }
+                currentX += pData.gap[0] + Math.random() * (pData.gap[1] - pData.gap[0]);
+            }
+
+            // Add goal platform
+            const goalConf = pData.goalPlatform;
+            const goalPlatform = { x: currentX, y: this.state.gameHeight - goalConf.y, width: goalConf.width, height: goalConf.height, goal: true };
+            this.state.platforms.push(goalPlatform);
             if (this.levelData.background.type === 'atomic') {
-                 this.state.atoms.push({x: currentX + width/2, y: (this.state.gameHeight - y) + width/2, radius: width/2});
+                this.state.atoms.push({ x: currentX + goalConf.width / 2, y: goalPlatform.y + goalConf.height / 2, radius: goalConf.width / 2, goal: true });
             }
-
-            if (i > 0) {
-                const qConf = this.levelData.quanta;
-                this.state.quanta.push({ x: currentX + width/2, y: (this.state.gameHeight - y) + qConf.offsetY, width: qConf.width, height: qConf.height, active: true });
-            }
-            currentX += pConf.gap[0] + Math.random() * (pConf.gap[1] - pConf.gap[0]);
-        }
-
-        // Add goal platform
-        const goalConf = this.levelData.platforms.goalPlatform;
-        this.state.platforms.push({ x: currentX, y: this.state.gameHeight - goalConf.y, width: goalConf.width, height: goalConf.height, goal: true });
-        if (this.levelData.background.type === 'atomic') {
-            this.state.atoms.push({x: currentX + goalConf.width/2, y: (this.state.gameHeight - goalConf.y) + goalConf.height/2, radius: goalConf.width/2, goal: true});
         }
 
         this.state.quantaGoal = this.state.quanta.length;
