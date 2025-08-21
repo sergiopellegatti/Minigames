@@ -1,15 +1,10 @@
 const level2Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 2",
-    "player": {
-        "width": 40,
-        "height": 40,
-        "speed": 5,
-        "style": "quanti",
-        "scaleFactor": 1.25
-    },
+    "character": "Quanti",
     "physics": {
         "gravity": 0.6,
         "jumpStrength": -15,
+        "doubleJumpStrength": -22,
         "quantumJumpStrength": -28
     },
     "background": {

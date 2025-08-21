@@ -37,6 +37,7 @@ const Physics = {
                 player.y = p.y - player.height;
                 player.velocityY = 0;
                 player.isJumping = false;
+                player.jumpCount = 0; // Reset jump count on landing
                 onPlatform = true;
                 if (p.goal) {
                     state.gameState = 'complete';
@@ -63,12 +64,24 @@ const Physics = {
         });
 
         // --- Player Jump ---
-        if ((keys['Space'] || keys['ArrowUp']) && !player.isJumping) {
+        const { prevKeys } = state;
+        const { doubleJumpStrength } = level.physics;
+        const jumpKeyPressed = (keys['Space'] || keys['ArrowUp']);
+        const prevJumpKeyPressed = (prevKeys['Space'] || prevKeys['ArrowUp']);
+
+        if (jumpKeyPressed && !prevJumpKeyPressed && player.jumpCount < 2) {
             player.isJumping = true;
-            player.velocityY = quantumLeapReady ? quantumJumpStrength : jumpStrength;
+            player.jumpCount++;
+
             if (quantumLeapReady) {
-                state.quantumLeapReady = false; // Reset the leap
+                player.velocityY = quantumJumpStrength;
+                state.quantumLeapReady = false;
+            } else if (player.jumpCount === 1) {
+                player.velocityY = jumpStrength;
+            } else { // jumpCount === 2
+                player.velocityY = doubleJumpStrength;
             }
+
             state.pendingSounds.push('jump');
         }
 

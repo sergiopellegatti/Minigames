@@ -83,15 +83,15 @@ const Renderer = {
 
     drawPlayer: function(ctx, state, level) {
         const { player, scrollOffset, score, quantaGoal, quantumLeapReady } = state;
-        const { style } = level.player;
+        const { style, scaleFactor } = player;
 
         ctx.save();
         ctx.translate(player.x - scrollOffset, player.y);
 
         if (style === 'quanti') {
-            const scaleFactor = level.player.scaleFactor || 1;
+            const resolvedScaleFactor = scaleFactor || 1;
             ctx.translate(player.width / 2, player.height / 2);
-            ctx.scale(scaleFactor, scaleFactor);
+            ctx.scale(resolvedScaleFactor, resolvedScaleFactor);
             ctx.translate(-player.width / 2, -player.height / 2);
 
             const progress = Math.min(score / quantaGoal, 1);
