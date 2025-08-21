@@ -34,11 +34,13 @@ const Engine = {
             quantaGoal: 0,
             quantumLeapReady: false,
             // Entities
-            player: { ...Characters[this.levelData.character], velocityX: 0, velocityY: 0, isJumping: true, jumpCount: 0 },
+            player: this.initializePlayerState(this.levelData.character),
             platforms: [],
             quanta: [],
             atoms: [],
             electrons: [],
+            powerUps: [],
+            collectedPowerUps: [],
             // Timers & flags
             electronTimer: 0,
             shouldReset: false,
@@ -72,10 +74,35 @@ const Engine = {
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     },
 
+    initializePlayerState: function(characterName) {
+        const characterData = Characters[characterName];
+        const playerState = {
+            ...characterData,
+            velocityX: 0,
+            velocityY: 0,
+            isJumping: true,
+            jumpCount: 0,
+            abilities: {}
+        };
+
+        if (characterData.possibleAbilities) {
+            characterData.possibleAbilities.forEach(ability => {
+                playerState.abilities[ability] = {
+                    active: false,
+                    permanent: false,
+                    timer: 0
+                };
+            });
+        }
+
+        return playerState;
+    },
+
     // --- Game Loop ---
     gameLoop: function(timestamp) {
         if (this.state.gameState === 'playing') {
             Physics.update(this.state, this.levelData);
+            this.updateAbilities(this.state);
         }
 
         Renderer.draw(this.displayCtx, this.gameCtx, this.state, this.levelData);
@@ -95,14 +122,52 @@ const Engine = {
         requestAnimationFrame((t) => this.gameLoop(t));
     },
 
+    updateAbilities: function(state) {
+        // Activate collected power-ups
+        if (state.collectedPowerUps.length > 0) {
+            state.collectedPowerUps.forEach(p => {
+                const ability = state.player.abilities[p.ability];
+                if (ability) {
+                    ability.active = true;
+                    ability.timer = p.duration;
+                }
+            });
+            state.collectedPowerUps = []; // Clear the array
+        }
+
+        // Update timers
+        for (const key in state.player.abilities) {
+            const ability = state.player.abilities[key];
+            if (ability.timer > 0) {
+                ability.timer--;
+                if (ability.timer === 0 && !ability.permanent) {
+                    ability.active = false;
+                }
+            }
+        }
+    },
+
     // --- Level Management ---
     resetLevel: function() {
         // Reset player state
+        const freshPlayerState = this.initializePlayerState(this.levelData.character);
         this.state.player.x = 0;
         this.state.player.y = 0;
         this.state.player.velocityX = 0;
         this.state.player.velocityY = 0;
         this.state.player.isJumping = true;
+        this.state.player.jumpCount = 0;
+        this.state.player.abilities = freshPlayerState.abilities; // Reset abilities
+
+        // Apply permanent unlocks for the level
+        if (this.levelData.unlockedAbilities) {
+            this.levelData.unlockedAbilities.forEach(ability => {
+                if (this.state.player.abilities[ability]) {
+                    this.state.player.abilities[ability].active = true;
+                    this.state.player.abilities[ability].permanent = true;
+                }
+            });
+        }
 
         // Reset progress
         this.state.scrollOffset = 0;
@@ -126,6 +191,18 @@ const Engine = {
         this.state.platforms = [];
         this.state.quanta = [];
         this.state.atoms = [];
+        this.state.powerUps = [];
+
+        // Load power-ups if they exist in level data
+        if (this.levelData.powerUps) {
+            this.levelData.powerUps.forEach(p => {
+                this.state.powerUps.push({
+                    ...p,
+                    y: this.state.gameHeight - p.y,
+                    active: true
+                });
+            });
+        }
 
         const pData = this.levelData.platforms;
 

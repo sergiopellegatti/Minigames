@@ -63,26 +63,45 @@ const Physics = {
             }
         });
 
+        // --- Collision Detection: PowerUps ---
+        state.powerUps?.forEach(p => {
+            if (p.active &&
+                player.x < p.x + 15 &&
+                player.x + player.width > p.x - 15 &&
+                player.y < p.y + 15 &&
+                player.y + player.height > p.y - 15)
+            {
+                p.active = false;
+                state.collectedPowerUps.push(p);
+                state.pendingSounds.push('collect'); // Reuse collect sound
+            }
+        });
+
         // --- Player Jump ---
         const { prevKeys } = state;
         const { doubleJumpStrength } = level.physics;
         const jumpKeyPressed = (keys['Space'] || keys['ArrowUp']);
         const prevJumpKeyPressed = (prevKeys['Space'] || prevKeys['ArrowUp']);
 
-        if (jumpKeyPressed && !prevJumpKeyPressed && player.jumpCount < 2) {
-            player.isJumping = true;
-            player.jumpCount++;
+        if (jumpKeyPressed && !prevJumpKeyPressed) {
+            const canFirstJump = player.jumpCount === 0;
+            const canDoubleJump = player.jumpCount === 1 && player.abilities.doubleJump?.active;
 
-            if (quantumLeapReady) {
-                player.velocityY = quantumJumpStrength;
-                state.quantumLeapReady = false;
-            } else if (player.jumpCount === 1) {
-                player.velocityY = jumpStrength;
-            } else { // jumpCount === 2
-                player.velocityY = doubleJumpStrength;
+            if (canFirstJump || canDoubleJump) {
+                player.isJumping = true;
+                player.jumpCount++;
+
+                if (quantumLeapReady) {
+                    player.velocityY = quantumJumpStrength;
+                    state.quantumLeapReady = false;
+                } else if (canFirstJump) {
+                    player.velocityY = jumpStrength;
+                } else { // Double jump
+                    player.velocityY = doubleJumpStrength;
+                }
+
+                state.pendingSounds.push('jump');
             }
-
-            state.pendingSounds.push('jump');
         }
 
         // --- Fall off screen ---

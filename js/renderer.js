@@ -10,6 +10,7 @@ const Renderer = {
         if (gameState === 'playing') {
             this.drawPlatforms(gCtx, state, level);
             this.drawQuanta(gCtx, state, level);
+            this.drawPowerUps(gCtx, state, level);
             this.drawEnemies(gCtx, state, level);
             this.drawPlayer(gCtx, state, level);
         }
@@ -146,6 +147,33 @@ const Renderer = {
                 ctx.beginPath();
                 ctx.arc(q.x - scrollOffset, q.y, q.width, 0, Math.PI * 2);
                 ctx.fill();
+            }
+        });
+    },
+
+    drawPowerUps: function(ctx, state, level) {
+        const { powerUps, scrollOffset } = state;
+
+        powerUps.forEach(p => {
+            if (p.active) {
+                ctx.save();
+                ctx.translate(p.x - scrollOffset, p.y);
+                ctx.fillStyle = 'yellow';
+                ctx.strokeStyle = 'gold';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(0, -15);
+                for (let i = 0; i < 5; i++) {
+                    ctx.rotate(Math.PI / 5);
+                    ctx.lineTo(0, - (15 * 0.5));
+                    ctx.rotate(Math.PI / 5);
+                    ctx.lineTo(0, -15);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
             }
         });
     },

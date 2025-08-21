@@ -1,6 +1,7 @@
 const level2Data = {
     "title": "Quanti e la Missione dell’Invisibile - Livello 2",
     "character": "Quanti",
+    "unlockedAbilities": ["doubleJump"],
     "physics": {
         "gravity": 0.6,
         "jumpStrength": -15,

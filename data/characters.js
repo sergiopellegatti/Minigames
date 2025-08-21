@@ -4,6 +4,7 @@ const Characters = {
         "height": 40,
         "speed": 5,
         "style": "quanti",
-        "scaleFactor": 1.25
+        "scaleFactor": 1.25,
+        "possibleAbilities": ["doubleJump"]
     }
 };
