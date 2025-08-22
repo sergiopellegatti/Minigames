@@ -12,12 +12,6 @@ class Level1 extends Phaser.Scene {
         this.levelData = data.levelData;
     }
 
-    preload() {
-        // Phaser needs a name for the data file, even though it's already loaded.
-        // This is a quirk of how we are loading data.
-        this.load.json('levelData', this.levelData);
-    }
-
     create() {
         this.cameras.main.setBackgroundColor(this.levelData.background.color);
 
