@@ -1,4 +1,3 @@
-// This will be populated in the next step
 const config = {
     type: Phaser.AUTO,
     width: 800,
@@ -15,5 +14,3 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-
-console.log("main.js has run and Phaser game is instantiated.");

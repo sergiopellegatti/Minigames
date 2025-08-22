@@ -1,7 +1,6 @@
 class Level1 extends Phaser.Scene {
     constructor() {
         super('level1');
-        console.log("Level1: constructor");
         this.player = null;
         this.platforms = null;
         this.cursors = null;
@@ -9,14 +8,11 @@ class Level1 extends Phaser.Scene {
     }
 
     init(data) {
-        console.log("Level1: init", data);
         this.levelData = data.levelData;
     }
 
     create() {
-        console.log("Level1: create start");
         this.cameras.main.setBackgroundColor(this.levelData.background.color);
-        console.log("Level1: background set");
 
         // Create platforms
         this.platforms = this.physics.add.staticGroup();
@@ -26,7 +22,6 @@ class Level1 extends Phaser.Scene {
             platform.displayHeight = p.height;
             platform.refreshBody();
         });
-        console.log("Level1: platforms created");
 
         // Create player
         const startPlatform = this.platforms.getChildren()[0];
@@ -35,22 +30,19 @@ class Level1 extends Phaser.Scene {
         this.player = this.physics.add.sprite(playerX, playerY, null);
         this.player.setBounce(0.1);
         this.player.setCollideWorldBounds(false);
+
         this.player.displayHeight = 40;
         this.player.displayWidth = 40;
-        console.log("Level1: player created");
 
         // Add collision
         this.physics.add.collider(this.player, this.platforms);
-        console.log("Level1: collision set");
 
         // Set up camera
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, 2500, 450);
-        console.log("Level1: camera set");
 
         // Set up input
         this.cursors = this.input.keyboard.createCursorKeys();
-        console.log("Level1: create end");
     }
 
     update() {
