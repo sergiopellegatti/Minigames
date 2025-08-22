@@ -5,7 +5,7 @@ class Level1 extends Phaser.Scene {
         this.platforms = null;
         this.cursors = null;
         this.levelData = null;
-        this.hud = null;
+        this.hud = null; // To hold HUD elements
         // --- Touch Control Flags ---
         this.moveLeft = false;
         this.moveRight = false;
@@ -17,6 +17,7 @@ class Level1 extends Phaser.Scene {
     }
 
     create() {
+        console.log("Level1 create: Start");
         this.cameras.main.setBackgroundColor(this.levelData.background.color);
 
         // --- Platforms ---
@@ -47,10 +48,13 @@ class Level1 extends Phaser.Scene {
 
         // --- Input ---
         this.cursors = this.input.keyboard.createCursorKeys();
+        console.log("Level1 create: Calling createControls...");
         this.createControls();
+        console.log("Level1 create: createControls finished.");
 
         // --- HUD ---
         this.hud = this.add.group();
+        console.log("Level1 create: End. HUD group created.");
     }
 
     update() {
@@ -68,11 +72,13 @@ class Level1 extends Phaser.Scene {
         if ((this.cursors.up.isDown || this.jump) && this.player.body.touching.down) {
             this.player.setVelocityY(this.levelData.physics.jumpStrength * 30);
         }
-        // Reset jump flag for touch to prevent continuous jumping
         this.jump = false;
 
         // --- HUD Update ---
+        console.log("Level1 update: Calling updateHUD...");
         this.updateHUD();
+        console.log("Level1 update: updateHUD finished.");
+
 
         // --- Fall Check ---
         if (this.player.y > 450) {
@@ -81,43 +87,43 @@ class Level1 extends Phaser.Scene {
     }
 
     createControls() {
+        console.log("createControls: Start");
         const { width, height } = this.cameras.main;
         const buttonSize = 70;
         const margin = 20;
 
-        // --- Left Button ---
-        const leftButton = this.add.rectangle(margin + buttonSize / 2, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5);
-        leftButton.setInteractive();
-        leftButton.setScrollFactor(0); // Fix to screen
+        const leftButton = this.add.rectangle(margin + buttonSize / 2, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5).setInteractive().setScrollFactor(0);
         leftButton.on('pointerdown', () => { this.moveLeft = true; });
         leftButton.on('pointerup', () => { this.moveLeft = false; });
         leftButton.on('pointerout', () => { this.moveLeft = false; });
 
-        // --- Right Button ---
-        const rightButton = this.add.rectangle(margin * 2 + buttonSize * 1.5, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5);
-        rightButton.setInteractive();
-        rightButton.setScrollFactor(0);
+        const rightButton = this.add.rectangle(margin * 2 + buttonSize * 1.5, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5).setInteractive().setScrollFactor(0);
         rightButton.on('pointerdown', () => { this.moveRight = true; });
         rightButton.on('pointerup', () => { this.moveRight = false; });
         rightButton.on('pointerout', () => { this.moveRight = false; });
 
-        // --- Jump Button ---
-        const jumpButton = this.add.rectangle(width - margin - buttonSize / 2, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5);
-        jumpButton.setInteractive();
-        jumpButton.setScrollFactor(0);
+        const jumpButton = this.add.rectangle(width - margin - buttonSize / 2, height - margin - buttonSize / 2, buttonSize, buttonSize, 0x000000, 0.5).setInteractive().setScrollFactor(0);
         jumpButton.on('pointerdown', () => { this.jump = true; });
-        // No pointerup needed for jump, as we reset the flag each frame
+        console.log("createControls: End");
     }
 
     updateHUD() {
+        console.log("updateHUD: Start");
         this.hud.clear(true, true);
         const activePowerUps = Object.values(this.player.abilities).filter(a => a.active && !a.permanent);
+        if (activePowerUps.length === 0) {
+            console.log("updateHUD: No active powerups.");
+            return;
+        }
+
         const barWidth = 60;
         const totalWidth = activePowerUps.length * (barWidth + 10);
         let startX = this.cameras.main.width / 2 - totalWidth / 2;
 
         for (const ability of activePowerUps) {
+            console.log(`updateHUD: Processing ability ${ability.icon}`);
             if (ability.timer > 0) ability.timer--;
+
             const iconX = startX + barWidth / 2;
             const icon = this.add.image(iconX, 30, ability.icon).setScale(0.8);
 
@@ -130,5 +136,6 @@ class Level1 extends Phaser.Scene {
             this.hud.add(bar);
             startX += barWidth + 10;
         }
+        console.log("updateHUD: End");
     }
 }
