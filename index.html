@@ -3,71 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quanti e la Missione dell’Invisibile</title>
+    <title>Quanti e la Missione dell’Invisibile (Phaser Edition)</title>
     <style>
         body {
-            background-color: #000010;
-            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
-            color: #fff;
+            background-color: #000;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
             height: 100vh;
-            box-sizing: border-box;
         }
-        h1 {
-            color: #ffdd00;
-            font-size: 2.5em;
-            text-shadow: 2px 2px #ff00ff;
-        }
-        p {
-            font-size: 1.2em;
-            max-width: 600px;
-            line-height: 1.6;
-        }
-        .story {
-            border: 2px solid #00dddd;
-            padding: 20px;
-            border-radius: 15px;
-            background-color: rgba(16, 16, 32, 0.7);
-        }
-        .button {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 15px 30px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: white;
-            background-color: #2c5b1b;
-            border: 2px solid #5bff5b;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-        .button:hover {
-            background-color: #4CAF50;
-            transform: scale(1.05);
+        canvas {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="story">
-        <h1>Quanti e la Missione dell’Invisibile</h1>
-        <p>
-            Nel profondo del Regno Quantico, il malvagio Dr. Clàsikon sta cercando di rubare tutta l'incertezza, rendendo l'universo noioso e prevedibile!
-        </p>
-        <p>
-            Solo un coraggioso fotone con un jetpack, **Quanti**, può fermarlo. Ma prima, Quanti deve padroneggiare l'arte del **Salto Quantico**.
-        </p>
-        <p>
-            Aiutalo nel suo addestramento e preparati a salvare il mondo dell'invisibile!
-        </p>
-    </div>
+    <div id="game-container"></div>
 
-    <a href="level1.html" class="button">Inizia l'Avventura</a>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@v3.90.0/dist/phaser.js"></script>
+    <script src="js/scenes/Preloader.js"></script>
+    <script src="js/scenes/Level1.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
