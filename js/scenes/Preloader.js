@@ -1,11 +1,12 @@
 class Preloader extends Phaser.Scene {
     constructor() {
         super('preloader');
+        console.log("Preloader: constructor");
     }
 
     preload() {
-        // In the future, we will load assets here
         console.log("Preloader: preload");
+        // In the future, we will load assets here
     }
 
     create() {
