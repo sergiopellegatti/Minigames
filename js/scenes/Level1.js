@@ -17,7 +17,7 @@ class Level1 extends Phaser.Scene {
         // Create platforms
         this.platforms = this.physics.add.staticGroup();
         this.levelData.platforms.layout.forEach(p => {
-            const platform = this.platforms.create(p.x + p.width / 2, 450 - p.y - p.height / 2, null);
+            const platform = this.platforms.create(p.x + p.width / 2, 450 - p.y - p.height / 2, 'platform');
             platform.displayWidth = p.width;
             platform.displayHeight = p.height;
             platform.refreshBody();
@@ -27,12 +27,9 @@ class Level1 extends Phaser.Scene {
         const startPlatform = this.platforms.getChildren()[0];
         const playerX = startPlatform.x;
         const playerY = startPlatform.y - startPlatform.displayHeight / 2 - 20;
-        this.player = this.physics.add.sprite(playerX, playerY, null);
+        this.player = this.physics.add.sprite(playerX, playerY, 'player');
         this.player.setBounce(0.1);
         this.player.setCollideWorldBounds(false);
-
-        this.player.displayHeight = 40;
-        this.player.displayWidth = 40;
 
         // Add collision
         this.physics.add.collider(this.player, this.platforms);
