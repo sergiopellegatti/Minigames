@@ -4,12 +4,11 @@ class Preloader extends Phaser.Scene {
     }
 
     preload() {
-        this.createPlaceholderGraphics();
-        console.log("Preloader: preload complete, textures created.");
+        // Nothing to preload for now
     }
 
     create() {
-        console.log("Preloader: create");
+        this.createPlaceholderGraphics();
         this.scene.start('level1', { levelData: level1Data });
     }
 
